@@ -13,7 +13,8 @@ async def calculate_root_controller(request: CalculationRequest):
             x_end=request.x_end,
             initial_guess=request.initial_guess,
             tol=request.tolerance,
-            max_iter=request.max_iterations
+            max_iter=request.max_iterations,
+            requested_method=request.method
         )
         
         # 2. Generate plotting coordinates

@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 class CalculationRequest(BaseModel):
     equation: str
     variable: str = "x"
+    method: Optional[str] = None # NEW: To specify "Bisección" or "Newton-Raphson"
     # Optional parameters for methods
     x_start: Optional[float] = None
     x_end: Optional[float] = None
