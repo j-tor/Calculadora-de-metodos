@@ -1,43 +1,192 @@
 import sympy as sp
-from typing import Tuple, Dict, Any
-from .methods import bisection_method, newton_raphson_method
+from typing import Tuple, Dict, Any, Sequence
+from .methods import (
+    bisection_method,
+    newton_raphson_method,
+    fixed_point_method,
+    fixed_point_convergence,
+    lagrange_interpolation,
+    lagrange_polynomial,
+    polynomial_interpolation_coeffs,
+    polynomial_interpolation_eval,
+    newton_divided_differences,
+    newton_interpolation_eval,
+    cubic_spline_coeffs,
+    cubic_spline_eval,
+    solve_upper_triangular,
+    solve_lower_triangular,
+    solve_diagonal,
+    lu_doolittle,
+    lu_crout,
+    lu_solve,
+    jacobian_matrix,
+    jacobian_evaluate,
+)
 
 def analyze_and_calculate(
-    equation_str: str, 
-    var_name: str, 
-    x_start: float = None, 
-    x_end: float = None, 
+    equation_str: str = None,
+    var_name: str = "x",
+    x_start: float = None,
+    x_end: float = None,
     initial_guess: float = None,
     tol: float = 1e-6,
     max_iter: int = 100,
-    requested_method: str = None # NEW
+    requested_method: str = None, # NEW
+    g_equation_str: str = None,
+    x_values: Sequence[float] = None,
+    y_values: Sequence[float] = None,
+    x_eval: float = None,
+    matrix_a: Sequence[Sequence[float]] = None,
+    vector_b: Sequence[float] = None,
+    matrix_type: str = None,
+    lu_variant: str = None,
+    funcs: Sequence[str] = None,
+    vars_list: Sequence[str] = None,
+    values: Sequence[float] = None,
 ) -> Dict[str, Any]:
     x = sp.symbols(var_name)
-    try:
-        expr = sp.parse_expr(equation_str)
-    except Exception as e:
-        raise ValueError(f"Error al interpretar la ecuación: {str(e)}")
 
-    f_lamb = sp.lambdify(x, expr, "numpy")
+    def _parse_expr(expr_str: str) -> sp.Expr:
+        try:
+            return sp.parse_expr(expr_str)
+        except Exception as e:
+            raise ValueError(f"Error al interpretar la ecuación: {str(e)}")
 
     # 1. Manual selection bypass
     if requested_method:
         requested_method = requested_method.lower()
         if "bisec" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para Bisección.")
+            expr = _parse_expr(equation_str)
+            f_lamb = sp.lambdify(x, expr, "numpy")
             if x_start is None or x_end is None:
                 raise ValueError("El método de Bisección requiere un intervalo (x_start, x_end).")
             res, iters = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
             return {"method": "Bisección", "result": res, "iterations": iters, "expression": expr, "symbol": x}
         
-        elif "newton" in requested_method:
+        elif "newton" in requested_method and "interpol" not in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para Newton-Raphson.")
+            expr = _parse_expr(equation_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
             res, iters = newton_raphson_method(expr, x, start_point, tol, max_iter)
             return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x}
 
+        elif "punto fijo" in requested_method or "fixed" in requested_method:
+            expr_str = g_equation_str if g_equation_str is not None else equation_str
+            if expr_str is None:
+                raise ValueError("Se requiere equation_str (g(x)) para Punto Fijo.")
+            g_expr = _parse_expr(expr_str)
+            start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
+            res, iters = fixed_point_method(g_expr, x, start_point, tol, max_iter)
+            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x}
+
+        elif "convergenciafija" in requested_method or "convergencia fija" in requested_method or "convergence" in requested_method:
+            expr_str = g_equation_str if g_equation_str is not None else equation_str
+            if expr_str is None:
+                raise ValueError("Se requiere equation_str (g(x)) para Convergencia Fija.")
+            g_expr = _parse_expr(expr_str)
+            interval = (x_start, x_end) if (x_start is not None and x_end is not None) else None
+            converges = fixed_point_convergence(g_expr, x, x0=initial_guess, interval=interval)
+            return {"method": "Convergencia Fija", "converges": converges, "expression": g_expr, "symbol": x}
+
+        elif "lagrange" in requested_method:
+            if x_values is None or y_values is None:
+                raise ValueError("Se requieren x_values y y_values para Lagrange.")
+            value = None
+            if x_eval is not None:
+                value = lagrange_interpolation(x_values, y_values, x_eval)
+            poly = lagrange_polynomial(x_values, y_values)
+            return {"method": "Lagrange", "value": value, "polynomial": poly, "x_eval": x_eval}
+
+        elif "polinomica" in requested_method or "polynomial" in requested_method:
+            if x_values is None or y_values is None:
+                raise ValueError("Se requieren x_values y y_values para Interpolación Polinómica.")
+            coeffs = polynomial_interpolation_coeffs(x_values, y_values)
+            value = None
+            if x_eval is not None:
+                value = polynomial_interpolation_eval(coeffs, x_eval)
+            return {"method": "Interpolación Polinómica", "coefficients": coeffs, "value": value, "x_eval": x_eval}
+
+        elif "newton" in requested_method and "interpol" in requested_method:
+            if x_values is None or y_values is None:
+                raise ValueError("Se requieren x_values y y_values para Interpolación de Newton.")
+            coef = newton_divided_differences(x_values, y_values)
+            value = None
+            if x_eval is not None:
+                value = newton_interpolation_eval(x_values, coef, x_eval)
+            return {"method": "Interpolación de Newton", "coefficients": coef, "value": value, "x_eval": x_eval}
+
+        elif "trazos" in requested_method or "spline" in requested_method or "cubicos" in requested_method:
+            if x_values is None or y_values is None:
+                raise ValueError("Se requieren x_values y y_values para Trazos Cúbicos.")
+            coeffs = cubic_spline_coeffs(x_values, y_values)
+            value = None
+            if x_eval is not None:
+                value = cubic_spline_eval(x_values, coeffs, x_eval)
+            return {"method": "Trazos Cúbicos", "coefficients": coeffs, "value": value, "x_eval": x_eval}
+
+        elif "matriz" in requested_method or "triangular" in requested_method or "diagonal" in requested_method:
+            if matrix_a is None or vector_b is None:
+                raise ValueError("Se requieren matrix_a y vector_b para resolver matrices.")
+            mtype = matrix_type
+            if mtype is None:
+                if "superior" in requested_method or "upper" in requested_method:
+                    mtype = "upper"
+                elif "inferior" in requested_method or "lower" in requested_method:
+                    mtype = "lower"
+                elif "diagonal" in requested_method:
+                    mtype = "diagonal"
+            if mtype == "upper":
+                sol = solve_upper_triangular(matrix_a, vector_b)
+                return {"method": "Triangular Superior", "solution": sol}
+            if mtype == "lower":
+                sol = solve_lower_triangular(matrix_a, vector_b)
+                return {"method": "Triangular Inferior", "solution": sol}
+            if mtype == "diagonal":
+                sol = solve_diagonal(matrix_a, vector_b)
+                return {"method": "Diagonal", "solution": sol}
+            raise ValueError("matrix_type debe ser upper, lower o diagonal.")
+
+        elif "lu" in requested_method or "doolittle" in requested_method or "crout" in requested_method or "kourt" in requested_method:
+            if matrix_a is None:
+                raise ValueError("Se requiere matrix_a para LU.")
+            variant = lu_variant
+            if variant is None:
+                if "doolittle" in requested_method:
+                    variant = "doolittle"
+                elif "crout" in requested_method or "kourt" in requested_method:
+                    variant = "crout"
+            if variant == "doolittle":
+                L, U = lu_doolittle(matrix_a)
+            elif variant == "crout":
+                L, U = lu_crout(matrix_a)
+            else:
+                raise ValueError("lu_variant debe ser doolittle o crout.")
+            sol = None
+            if vector_b is not None:
+                sol = lu_solve(L, U, vector_b)
+            return {"method": f"LU ({variant})", "L": L, "U": U, "solution": sol}
+
+        elif "jacob" in requested_method:
+            if funcs is None or vars_list is None:
+                raise ValueError("Se requieren funcs y vars_list para Jacobiano.")
+            vars_syms = [sp.symbols(v) for v in vars_list]
+            funcs_expr = [_parse_expr(f) for f in funcs]
+            J = jacobian_matrix(funcs_expr, vars_syms)
+            J_num = None
+            if values is not None:
+                J_num = jacobian_evaluate(funcs_expr, vars_syms, values)
+            return {"method": "Jacobiano", "jacobian": J, "jacobian_numeric": J_num}
+
     # 2. Decision Engine Logic (Auto)
+    if equation_str is None:
+        raise ValueError("Se requiere equation_str para el modo automático.")
+    expr = _parse_expr(equation_str)
+    f_lamb = sp.lambdify(x, expr, "numpy")
     if x_start is not None and x_end is not None:
         # Check sign change for Bisection
-        f_lamb = sp.lambdify(x, expr, "numpy")
         try:
             f_a = f_lamb(x_start)
             f_b = f_lamb(x_end)
