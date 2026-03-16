@@ -4,6 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 interface ParametersPanelProps {
   selectedMethod: string;
   onCalculate: () => void;
+  values: Record<string, string>;
+  onValueChange: (name: string, value: string) => void;
 }
 
 // Dynamic parameters based on selected method
@@ -86,7 +88,7 @@ const methodParameters: Record<string, Array<{name: string; label: string; type:
   ],
 };
 
-export function ParametersPanel({ selectedMethod, onCalculate }: ParametersPanelProps) {
+export function ParametersPanel({ selectedMethod, onCalculate, values, onValueChange }: ParametersPanelProps) {
   const parameters = methodParameters[selectedMethod] || methodParameters['newton'];
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -126,6 +128,8 @@ export function ParametersPanel({ selectedMethod, onCalculate }: ParametersPanel
             <input
               type={param.type}
               placeholder={param.placeholder}
+              value={values[param.name] ?? ''}
+              onChange={(e) => onValueChange(param.name, e.target.value)}
               step={param.type === 'number' ? '0.0001' : undefined}
               className={`w-full ${bgSecondary} border ${borderSecondary} rounded-lg px-4 py-3 ${textPrimary} ${placeholder} focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20 transition-all`}
               style={{ fontFamily: 'JetBrains Mono, monospace' }}

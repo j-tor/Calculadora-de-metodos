@@ -9,6 +9,15 @@ class CalculationRequest(BaseModel):
     x_start: Optional[float] = None
     x_end: Optional[float] = None
     initial_guess: Optional[float] = None
+    # Frontend aliases
+    a: Optional[float] = None
+    b: Optional[float] = None
+    n: Optional[int] = None
+    x0: Optional[float] = None
+    xf: Optional[float] = None
+    maxIter: Optional[int] = None
+    matrixA: Optional[str] = None
+    vectorB: Optional[str] = None
     tolerance: float = 1e-6
     max_iterations: int = 100
     # Fixed point
@@ -29,8 +38,6 @@ class CalculationRequest(BaseModel):
     # Integration
     n_subintervals: Optional[int] = None
     # ODE inputs
-    x0: Optional[float] = None
-    x_end: Optional[float] = None
     y0: Optional[float] = None
     v0: Optional[float] = None
     h: Optional[float] = None

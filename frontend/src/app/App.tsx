@@ -11,14 +11,61 @@ import { VoiceCommandDialog } from './components/VoiceCommandDialog';
 function AppContent() {
   const [selectedMethod, setSelectedMethod] = useState('newton');
   const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
-  const [hasResults, setHasResults] = useState(true); // Set to true to show demo results
+  const [hasResults, setHasResults] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [mathInput, setMathInput] = useState('');
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [apiResult, setApiResult] = useState<any>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const handleCalculate = () => {
-    console.log('Calculating with method:', selectedMethod);
-    setHasResults(true);
+  const handleCalculate = async () => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const endpoint = `${apiBase}/api/calculator/calculate`;
+    const payload: Record<string, any> = { method: selectedMethod };
+
+    if (mathInput.trim() !== '') {
+      payload.equation = mathInput.trim();
+    }
+
+    Object.entries(paramValues).forEach(([key, value]) => {
+      if (value === '') return;
+      if (key === 'matrixA' || key === 'vectorB') {
+        payload[key] = value;
+        return;
+      }
+      const num = Number(value);
+      payload[key] = Number.isFinite(num) ? num : value;
+    });
+
+    try {
+      setIsLoading(true);
+      setApiError(null);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.detail || 'Error en la solicitud');
+      }
+      const data = await response.json();
+      setApiResult(data);
+      setHasResults(true);
+    } catch (error: any) {
+      setApiResult(null);
+      setHasResults(false);
+      setApiError(error?.message || 'Error desconocido');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleParamChange = (name: string, value: string) => {
+    setParamValues((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleVoiceCommand = () => {
@@ -83,12 +130,21 @@ function AppContent() {
               <div className="grid grid-cols-12 gap-6">
                 {/* Math Input - Takes 8 columns */}
                 <div className="col-span-8">
-                  <MathInputPanel selectedMethod={selectedMethod} />
+                  <MathInputPanel
+                    selectedMethod={selectedMethod}
+                    value={mathInput}
+                    onChange={setMathInput}
+                  />
                 </div>
 
                 {/* Parameters Panel - Takes 4 columns */}
                 <div className="col-span-4">
-                  <ParametersPanel selectedMethod={selectedMethod} onCalculate={handleCalculate} />
+                  <ParametersPanel
+                    selectedMethod={selectedMethod}
+                    onCalculate={handleCalculate}
+                    values={paramValues}
+                    onValueChange={handleParamChange}
+                  />
                 </div>
               </div>
 
@@ -99,7 +155,13 @@ function AppContent() {
                   <h2 className={`text-sm font-semibold ${isDark ? 'text-[#64748B]' : 'text-[#64748B]'} uppercase tracking-wider`}>Resultados</h2>
                   <div className={`h-0.5 flex-1 bg-gradient-to-r from-transparent ${isDark ? 'via-[#334155]' : 'via-[#CBD5E1]'} to-transparent`}></div>
                 </div>
-                <DynamicResultsPanel selectedMethod={selectedMethod} hasResults={hasResults} />
+                <DynamicResultsPanel
+                  selectedMethod={selectedMethod}
+                  hasResults={hasResults}
+                  apiResult={apiResult}
+                  apiError={apiError}
+                  isLoading={isLoading}
+                />
               </div>
 
               {/* Graph Visualization */}

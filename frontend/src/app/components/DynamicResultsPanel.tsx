@@ -5,6 +5,9 @@ import { useTheme } from '../context/ThemeContext';
 interface DynamicResultsPanelProps {
   selectedMethod: string;
   hasResults: boolean;
+  apiResult?: any;
+  apiError?: string | null;
+  isLoading?: boolean;
 }
 
 // Mock results - in real app, these would come from calculation
@@ -92,7 +95,7 @@ const mockIterations = [
   { iteration: 6, xi: 2.0938, fxi: -0.0096, error: 0.0149 },
 ];
 
-export function DynamicResultsPanel({ selectedMethod, hasResults }: DynamicResultsPanelProps) {
+export function DynamicResultsPanel({ selectedMethod, hasResults, apiResult, apiError, isLoading }: DynamicResultsPanelProps) {
   const [showTable, setShowTable] = useState(false);
   const results = mockResults[selectedMethod] || mockResults['newton'];
   const { theme } = useTheme();
@@ -111,6 +114,30 @@ export function DynamicResultsPanel({ selectedMethod, hasResults }: DynamicResul
   const border = isDark ? 'border-[#1E293B]' : 'border-[#E2E8F0]';
   const borderSecondary = isDark ? 'border-[#334155]' : 'border-[#CBD5E1]';
 
+  if (isLoading) {
+    return (
+      <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl p-12 text-center`}>
+        <div className={`w-20 h-20 mx-auto mb-4 rounded-full ${isDark ? 'bg-[#1E293B]/60' : 'bg-[#F1F5F9]'} flex items-center justify-center`}>
+          <Info className={`w-10 h-10 ${textMuted}`} />
+        </div>
+        <h3 className={`text-lg font-semibold ${textTertiary} mb-2`}>Calculando...</h3>
+        <p className={`text-sm ${textMuted}`}>Enviando datos al servidor</p>
+      </div>
+    );
+  }
+
+  if (apiError) {
+    return (
+      <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl p-12 text-center`}>
+        <div className={`w-20 h-20 mx-auto mb-4 rounded-full ${isDark ? 'bg-[#1E293B]/60' : 'bg-[#F1F5F9]'} flex items-center justify-center`}>
+          <AlertCircle className={`w-10 h-10 ${textMuted}`} />
+        </div>
+        <h3 className={`text-lg font-semibold ${textTertiary} mb-2`}>Error</h3>
+        <p className={`text-sm ${textMuted}`}>{apiError}</p>
+      </div>
+    );
+  }
+
   if (!hasResults) {
     return (
       <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl p-12 text-center`}>
@@ -125,11 +152,24 @@ export function DynamicResultsPanel({ selectedMethod, hasResults }: DynamicResul
     );
   }
 
+  const apiCards = apiResult
+    ? Object.entries(apiResult)
+        .filter(([, value]) => value !== null && value !== undefined)
+        .filter(([key]) => !['coordinates'].includes(key))
+        .map(([key, value]) => {
+          const label = key.replace(/_/g, ' ');
+          const displayValue = Array.isArray(value) || typeof value === 'object'
+            ? JSON.stringify(value)
+            : String(value);
+          return { label, value: displayValue, icon: CheckCircle2, color: 'cyan' };
+        })
+    : null;
+
   return (
     <div className="space-y-4">
       {/* Dynamic Result Cards */}
-      <div className={`grid gap-4 ${results.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-        {results.map((result, idx) => {
+      <div className={`grid gap-4 ${(apiCards ?? results).length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+        {(apiCards ?? results).map((result, idx) => {
           const Icon = result.icon;
           const cyanColor = isDark ? '#22D3EE' : '#0891B2';
           const cyanBg = isDark ? 'bg-[#22D3EE]/10' : 'bg-[#0891B2]/10';
@@ -153,6 +193,7 @@ export function DynamicResultsPanel({ selectedMethod, hasResults }: DynamicResul
       </div>
 
       {/* Convergence Table */}
+      {!apiResult && (
       <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
         <button
           onClick={() => setShowTable(!showTable)}
@@ -223,6 +264,7 @@ export function DynamicResultsPanel({ selectedMethod, hasResults }: DynamicResul
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

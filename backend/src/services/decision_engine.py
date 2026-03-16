@@ -125,7 +125,7 @@ def analyze_and_calculate(
                 value = polynomial_interpolation_eval(coeffs, x_eval)
             return {"method": "Interpolación Polinómica", "coefficients": coeffs, "value": value, "x_eval": x_eval}
 
-        elif "newton" in requested_method and "interpol" in requested_method:
+        elif "newton-divided" in requested_method or ("newton" in requested_method and "interpol" in requested_method):
             if x_values is None or y_values is None:
                 raise ValueError("Se requieren x_values y y_values para Interpolación de Newton.")
             coef = newton_divided_differences(x_values, y_values)
@@ -274,7 +274,7 @@ def analyze_and_calculate(
             xs, ys = rk4_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "RK4", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
-        elif "verlet" in requested_method and "error" in requested_method:
+        elif "verlet-error" in requested_method or ("verlet" in requested_method and "error" in requested_method):
             if equation_str is None:
                 raise ValueError("Se requiere equation_str para Error de Verlet.")
             if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
