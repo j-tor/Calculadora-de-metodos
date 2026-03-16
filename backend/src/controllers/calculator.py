@@ -17,7 +17,6 @@ async def calculate_root_controller(request: CalculationRequest):
             equation_str=request.equation,
             var_name=request.variable,
             x_start=request.x_start,
-            x_end=request.x_end,
             initial_guess=request.initial_guess,
             tol=request.tolerance,
             max_iter=request.max_iterations,
@@ -33,6 +32,12 @@ async def calculate_root_controller(request: CalculationRequest):
             funcs=request.funcs,
             vars_list=request.vars_list,
             values=request.values,
+            n_subintervals=request.n_subintervals,
+            x0=request.x0,
+            x_end=request.x_end,
+            y0=request.y0,
+            v0=request.v0,
+            h=request.h,
         )
 
         coordinates = None
@@ -70,6 +75,13 @@ async def calculate_root_controller(request: CalculationRequest):
             u_matrix=_tolist(results.get("U")),
             jacobian=str(results["jacobian"]) if results.get("jacobian") is not None else None,
             jacobian_numeric=_tolist(results.get("jacobian_numeric")),
+            x_values=_tolist(results.get("x_values")),
+            y_values=_tolist(results.get("y_values")),
+            v_values=_tolist(results.get("v_values")),
+            order=results.get("order"),
+            local_order=results.get("local_order"),
+            error=results.get("error"),
+            converged=results.get("converged"),
         )
 
     except ValueError as e:

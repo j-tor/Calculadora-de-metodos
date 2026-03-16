@@ -31,6 +31,55 @@ const mockResults: Record<string, Array<{label: string; value: string; icon: any
     { label: 'Subintervalos', value: '10', icon: Hash, color: 'blue' },
     { label: 'Error Estimado', value: '< 0.0001', icon: TrendingUp, color: 'cyan' },
   ],
+  'simpson-3-8': [
+    { label: 'Integral Aproximada', value: '0.3333', icon: CheckCircle2, color: 'cyan' },
+    { label: 'Subintervalos', value: '12', icon: Hash, color: 'blue' },
+    { label: 'Error Estimado', value: '< 0.0001', icon: TrendingUp, color: 'cyan' },
+  ],
+  'trapezoidal': [
+    { label: 'Integral Aproximada', value: '0.3333', icon: CheckCircle2, color: 'cyan' },
+    { label: 'Subintervalos', value: '12', icon: Hash, color: 'blue' },
+    { label: 'Error Estimado', value: '< 0.001', icon: TrendingUp, color: 'blue' },
+  ],
+  'rk2': [
+    { label: 'Valor Final y(xf)', value: '7.3891', icon: CheckCircle2, color: 'cyan' },
+    { label: 'Pasos Calculados', value: '20', icon: Hash, color: 'blue' },
+    { label: 'Tamano de Paso', value: '0.1', icon: Info, color: 'cyan' },
+  ],
+  'euler': [
+    { label: 'Valor Final y(xf)', value: '6.7275', icon: CheckCircle2, color: 'cyan' },
+    { label: 'Pasos Calculados', value: '20', icon: Hash, color: 'blue' },
+    { label: 'Tamano de Paso', value: '0.1', icon: Info, color: 'cyan' },
+  ],
+  'euler-order': [
+    { label: 'Orden Global', value: '1', icon: CheckCircle2, color: 'cyan' },
+    { label: 'Orden Local', value: '2', icon: Info, color: 'blue' },
+  ],
+  'verlet': [
+    { label: 'Posicion Final', value: '0.9093', icon: CheckCircle2, color: 'cyan' },
+    { label: 'Pasos Calculados', value: '20', icon: Hash, color: 'blue' },
+    { label: 'Tamano de Paso', value: '0.1', icon: Info, color: 'cyan' },
+  ],
+  'verlet-error': [
+    { label: 'Error Estimado', value: '0.0003', icon: TrendingUp, color: 'cyan' },
+  ],
+  'jacobi': [
+    { label: 'Iteraciones', value: '18', icon: Hash, color: 'blue' },
+    { label: 'Convergio', value: 'Si', icon: CheckCircle2, color: 'cyan' },
+  ],
+  'gauss-seidel': [
+    { label: 'Iteraciones', value: '9', icon: Hash, color: 'blue' },
+    { label: 'Convergio', value: 'Si', icon: CheckCircle2, color: 'cyan' },
+  ],
+  'lu': [
+    { label: 'Solucion', value: 'x1=1.0, x2=2.0', icon: CheckCircle2, color: 'cyan' },
+  ],
+  'lagrange': [
+    { label: 'Valor Interpolado', value: '2.375', icon: CheckCircle2, color: 'cyan' },
+  ],
+  'newton-divided': [
+    { label: 'Valor Interpolado', value: '2.375', icon: CheckCircle2, color: 'cyan' },
+  ],
 };
 
 const mockIterations = [

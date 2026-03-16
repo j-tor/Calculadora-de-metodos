@@ -24,16 +24,65 @@ const methodParameters: Record<string, Array<{name: string; label: string; type:
     { name: 'tolerance', label: 'Tolerancia (ε)', type: 'number', placeholder: '0.0001' },
     { name: 'maxIter', label: 'Iteraciones Máximas', type: 'number', placeholder: '100' },
   ],
-  'rk4': [
-    { name: 'x0', label: 'Valor Inicial (x₀)', type: 'number', placeholder: '0' },
-    { name: 'y0', label: 'Condición Inicial (y₀)', type: 'number', placeholder: '1' },
-    { name: 'h', label: 'Tamaño de Paso (h)', type: 'number', placeholder: '0.1' },
-    { name: 'xf', label: 'Valor Final (xf)', type: 'number', placeholder: '2' },
-  ],
   'simpson-1-3': [
     { name: 'a', label: 'Límite Inferior (a)', type: 'number', placeholder: '0' },
     { name: 'b', label: 'Límite Superior (b)', type: 'number', placeholder: '1' },
     { name: 'n', label: 'Número de Subintervalos (n)', type: 'number', placeholder: '10' },
+  ],
+  'simpson-3-8': [
+    { name: 'a', label: 'Limite Inferior (a)', type: 'number', placeholder: '0' },
+    { name: 'b', label: 'Limite Superior (b)', type: 'number', placeholder: '1' },
+    { name: 'n', label: 'Numero de Subintervalos (n)', type: 'number', placeholder: '12' },
+  ],
+  'trapezoidal': [
+    { name: 'a', label: 'Limite Inferior (a)', type: 'number', placeholder: '0' },
+    { name: 'b', label: 'Limite Superior (b)', type: 'number', placeholder: '1' },
+    { name: 'n', label: 'Numero de Subintervalos (n)', type: 'number', placeholder: '10' },
+  ],
+  'rk2': [
+    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '0' },
+    { name: 'y0', label: 'Condicion Inicial (y0)', type: 'number', placeholder: '1' },
+    { name: 'h', label: 'Tamano de Paso (h)', type: 'number', placeholder: '0.1' },
+    { name: 'xf', label: 'Valor Final (xf)', type: 'number', placeholder: '2' },
+  ],
+  'rk4': [
+    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '0' },
+    { name: 'y0', label: 'Condicion Inicial (y0)', type: 'number', placeholder: '1' },
+    { name: 'h', label: 'Tamano de Paso (h)', type: 'number', placeholder: '0.1' },
+    { name: 'xf', label: 'Valor Final (xf)', type: 'number', placeholder: '2' },
+  ],
+  'euler': [
+    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '0' },
+    { name: 'y0', label: 'Condicion Inicial (y0)', type: 'number', placeholder: '1' },
+    { name: 'h', label: 'Tamano de Paso (h)', type: 'number', placeholder: '0.1' },
+    { name: 'xf', label: 'Valor Final (xf)', type: 'number', placeholder: '2' },
+  ],
+  'euler-order': [],
+  'verlet': [
+    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '0' },
+    { name: 'y0', label: 'Posicion Inicial (y0)', type: 'number', placeholder: '1' },
+    { name: 'v0', label: 'Velocidad Inicial (v0)', type: 'number', placeholder: '0' },
+    { name: 'h', label: 'Tamano de Paso (h)', type: 'number', placeholder: '0.1' },
+    { name: 'xf', label: 'Valor Final (xf)', type: 'number', placeholder: '2' },
+  ],
+  'verlet-error': [
+    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '0' },
+    { name: 'y0', label: 'Posicion Inicial (y0)', type: 'number', placeholder: '1' },
+    { name: 'v0', label: 'Velocidad Inicial (v0)', type: 'number', placeholder: '0' },
+    { name: 'h', label: 'Tamano de Paso (h)', type: 'number', placeholder: '0.1' },
+    { name: 'xf', label: 'Valor Final (xf)', type: 'number', placeholder: '2' },
+  ],
+  'jacobi': [
+    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
+    { name: 'vectorB', label: 'Vector b', type: 'text', placeholder: '4,5,6' },
+    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
+    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
+  ],
+  'gauss-seidel': [
+    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
+    { name: 'vectorB', label: 'Vector b', type: 'text', placeholder: '4,5,6' },
+    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
+    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
   ],
 };
 

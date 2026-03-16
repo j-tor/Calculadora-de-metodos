@@ -26,6 +26,14 @@ class CalculationRequest(BaseModel):
     funcs: Optional[List[str]] = None
     vars_list: Optional[List[str]] = None
     values: Optional[List[float]] = None
+    # Integration
+    n_subintervals: Optional[int] = None
+    # ODE inputs
+    x0: Optional[float] = None
+    x_end: Optional[float] = None
+    y0: Optional[float] = None
+    v0: Optional[float] = None
+    h: Optional[float] = None
 
 class Coordinate(BaseModel):
     x: float
@@ -48,3 +56,10 @@ class CalculationResponse(BaseModel):
     u_matrix: Optional[List[List[float]]] = None
     jacobian: Optional[str] = None
     jacobian_numeric: Optional[List[List[float]]] = None
+    x_values: Optional[List[float]] = None
+    y_values: Optional[List[float]] = None
+    v_values: Optional[List[float]] = None
+    order: Optional[int] = None
+    local_order: Optional[int] = None
+    error: Optional[float] = None
+    converged: Optional[bool] = None

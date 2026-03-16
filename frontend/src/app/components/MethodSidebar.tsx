@@ -11,14 +11,12 @@ interface MethodSidebarProps {
 const methodCategories = [
   {
     id: 'roots',
-    name: 'Raíces de Ecuaciones',
+    name: 'Raices de Ecuaciones',
     icon: Target,
     methods: [
-      { id: 'newton', name: 'Método de Newton-Raphson' },
-      { id: 'bisection', name: 'Método de Bisección' },
-      { id: 'secant', name: 'Método de la Secante' },
+      { id: 'newton', name: 'Metodo de Newton-Raphson' },
+      { id: 'bisection', name: 'Metodo de Biseccion' },
       { id: 'fixed-point', name: 'Punto Fijo' },
-      { id: 'false-position', name: 'Falsa Posición' },
     ],
   },
   {
@@ -26,22 +24,19 @@ const methodCategories = [
     name: 'Sistemas Lineales',
     icon: Grid3x3,
     methods: [
-      { id: 'gauss', name: 'Eliminación Gaussiana' },
-      { id: 'gauss-jordan', name: 'Gauss-Jordan' },
-      { id: 'lu', name: 'Factorización LU' },
-      { id: 'jacobi', name: 'Método de Jacobi' },
+      { id: 'jacobi', name: 'Metodo de Jacobi' },
       { id: 'gauss-seidel', name: 'Gauss-Seidel' },
+      { id: 'lu', name: 'Descomposicion LU' },
     ],
   },
   {
     id: 'integration',
-    name: 'Integración Numérica',
+    name: 'Integracion Numerica',
     icon: Sigma,
     methods: [
+      { id: 'trapezoidal', name: 'Regla del Trapecio' },
       { id: 'simpson-1-3', name: 'Simpson 1/3' },
       { id: 'simpson-3-8', name: 'Simpson 3/8' },
-      { id: 'trapezoidal', name: 'Regla Trapezoidal' },
-      { id: 'romberg', name: 'Integración de Romberg' },
     ],
   },
   {
@@ -49,20 +44,21 @@ const methodCategories = [
     name: 'Ecuaciones Diferenciales',
     icon: TrendingUp,
     methods: [
-      { id: 'euler', name: 'Método de Euler' },
-      { id: 'rk2', name: 'Runge-Kutta 2° Orden' },
-      { id: 'rk4', name: 'Runge-Kutta 4° Orden' },
-      { id: 'adams-bashforth', name: 'Adams-Bashforth' },
+      { id: 'euler', name: 'Metodo de Euler' },
+      { id: 'euler-order', name: 'Orden del Metodo de Euler' },
+      { id: 'verlet', name: 'Metodo de Verlet' },
+      { id: 'verlet-error', name: 'Error del Metodo de Verlet' },
+      { id: 'rk2', name: 'Runge-Kutta 2do Orden (RK2)' },
+      { id: 'rk4', name: 'Runge-Kutta 4to Orden (RK4)' },
     ],
   },
   {
     id: 'interpolation',
-    name: 'Interpolación',
+    name: 'Interpolacion',
     icon: GitBranch,
     methods: [
-      { id: 'lagrange', name: 'Interpolación de Lagrange' },
-      { id: 'newton-divided', name: 'Diferencias Divididas' },
-      { id: 'spline', name: 'Spline Cúbico' },
+      { id: 'lagrange', name: 'Interpolacion de Lagrange' },
+      { id: 'newton-divided', name: 'Interpolacion de Newton' },
     ],
   },
 ];

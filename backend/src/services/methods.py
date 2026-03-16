@@ -2,6 +2,17 @@ import numpy as np
 import sympy as sp
 from typing import Tuple, Callable, Sequence, List
 
+def _validate_uniform_steps(x0: float, x_end: float, h: float) -> int:
+    if h == 0:
+        raise ValueError("El tamaÃ±o de paso h no puede ser 0.")
+    steps_float = (x_end - x0) / h
+    steps_rounded = int(round(steps_float))
+    if abs(steps_float - steps_rounded) > 1e-10:
+        raise ValueError("El intervalo no es mÃºltiplo exacto del paso h.")
+    if steps_rounded < 0:
+        raise ValueError("El paso h debe avanzar hacia x_end.")
+    return steps_rounded
+
 def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int) -> Tuple[float, int]:
     if f(a) * f(b) >= 0:
         raise ValueError("El intervalo no cambia de signo (f(a)*f(b) >= 0).")
@@ -246,3 +257,200 @@ def jacobian_evaluate(funcs: Sequence[sp.Expr], vars: Sequence[sp.Symbol], value
     subs = {var: val for var, val in zip(vars, values)}
     J_num = np.array(J.subs(subs), dtype=float)
     return J_num
+
+def trapezoidal_rule(f: Callable, a: float, b: float, n: int) -> float:
+    if n is None or n <= 0:
+        raise ValueError("n debe ser un entero positivo.")
+    h = (b - a) / n
+    xs = np.linspace(a, b, n + 1)
+    ys = f(xs)
+    return float(h * (0.5 * ys[0] + np.sum(ys[1:-1]) + 0.5 * ys[-1]))
+
+def simpson_one_third_rule(f: Callable, a: float, b: float, n: int) -> float:
+    if n is None or n <= 0:
+        raise ValueError("n debe ser un entero positivo.")
+    if n % 2 != 0:
+        raise ValueError("Simpson 1/3 requiere n par.")
+    h = (b - a) / n
+    xs = np.linspace(a, b, n + 1)
+    ys = f(xs)
+    return float((h / 3) * (ys[0] + ys[-1] + 4 * np.sum(ys[1:-1:2]) + 2 * np.sum(ys[2:-1:2])))
+
+def simpson_three_eighths_rule(f: Callable, a: float, b: float, n: int) -> float:
+    if n is None or n <= 0:
+        raise ValueError("n debe ser un entero positivo.")
+    if n % 3 != 0:
+        raise ValueError("Simpson 3/8 requiere n mÃºltiplo de 3.")
+    h = (b - a) / n
+    xs = np.linspace(a, b, n + 1)
+    ys = f(xs)
+    indices = np.arange(1, n)
+    sum_three = np.sum(ys[indices[indices % 3 != 0]])
+    sum_two = np.sum(ys[indices[indices % 3 == 0]])
+    return float((3 * h / 8) * (ys[0] + ys[-1] + 3 * sum_three + 2 * sum_two))
+
+def jacobi_method(
+    A: Sequence[Sequence[float]],
+    b: Sequence[float],
+    x0: Sequence[float] = None,
+    tol: float = 1e-6,
+    max_iter: int = 100,
+) -> Tuple[np.ndarray, int, bool]:
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
+    n = A.shape[0]
+    if A.shape[0] != A.shape[1]:
+        raise ValueError("La matriz A debe ser cuadrada.")
+    if b.shape[0] != n:
+        raise ValueError("El vector b debe tener el mismo tamaÃ±o que A.")
+    if np.any(np.abs(np.diag(A)) < 1e-12):
+        raise ValueError("Cero en la diagonal.")
+    x = np.zeros(n) if x0 is None else np.array(x0, dtype=float)
+    D = np.diag(A)
+    R = A - np.diagflat(D)
+    for k in range(max_iter):
+        x_new = (b - np.dot(R, x)) / D
+        if np.linalg.norm(x_new - x, ord=np.inf) < tol:
+            return x_new, k + 1, True
+        x = x_new
+    return x, max_iter, False
+
+def gauss_seidel_method(
+    A: Sequence[Sequence[float]],
+    b: Sequence[float],
+    x0: Sequence[float] = None,
+    tol: float = 1e-6,
+    max_iter: int = 100,
+) -> Tuple[np.ndarray, int, bool]:
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
+    n = A.shape[0]
+    if A.shape[0] != A.shape[1]:
+        raise ValueError("La matriz A debe ser cuadrada.")
+    if b.shape[0] != n:
+        raise ValueError("El vector b debe tener el mismo tamaÃ±o que A.")
+    if np.any(np.abs(np.diag(A)) < 1e-12):
+        raise ValueError("Cero en la diagonal.")
+    x = np.zeros(n) if x0 is None else np.array(x0, dtype=float)
+    for k in range(max_iter):
+        x_old = x.copy()
+        for i in range(n):
+            s1 = np.dot(A[i, :i], x[:i])
+            s2 = np.dot(A[i, i + 1:], x_old[i + 1:])
+            x[i] = (b[i] - s1 - s2) / A[i, i]
+        if np.linalg.norm(x - x_old, ord=np.inf) < tol:
+            return x, k + 1, True
+    return x, max_iter, False
+
+def euler_method(
+    f_expr: sp.Expr,
+    x_sym: sp.Symbol,
+    y_sym: sp.Symbol,
+    x0: float,
+    y0: float,
+    h: float,
+    x_end: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    steps = _validate_uniform_steps(x0, x_end, h)
+    f = sp.lambdify((x_sym, y_sym), f_expr, "numpy")
+    xs = [x0]
+    ys = [y0]
+    for _ in range(steps):
+        x_n = xs[-1]
+        y_n = ys[-1]
+        y_next = y_n + h * f(x_n, y_n)
+        xs.append(x_n + h)
+        ys.append(y_next)
+    return np.array(xs, dtype=float), np.array(ys, dtype=float)
+
+def rk2_method(
+    f_expr: sp.Expr,
+    x_sym: sp.Symbol,
+    y_sym: sp.Symbol,
+    x0: float,
+    y0: float,
+    h: float,
+    x_end: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    steps = _validate_uniform_steps(x0, x_end, h)
+    f = sp.lambdify((x_sym, y_sym), f_expr, "numpy")
+    xs = [x0]
+    ys = [y0]
+    for _ in range(steps):
+        x_n = xs[-1]
+        y_n = ys[-1]
+        k1 = f(x_n, y_n)
+        k2 = f(x_n + h, y_n + h * k1)
+        y_next = y_n + (h / 2) * (k1 + k2)
+        xs.append(x_n + h)
+        ys.append(y_next)
+    return np.array(xs, dtype=float), np.array(ys, dtype=float)
+
+def rk4_method(
+    f_expr: sp.Expr,
+    x_sym: sp.Symbol,
+    y_sym: sp.Symbol,
+    x0: float,
+    y0: float,
+    h: float,
+    x_end: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    steps = _validate_uniform_steps(x0, x_end, h)
+    f = sp.lambdify((x_sym, y_sym), f_expr, "numpy")
+    xs = [x0]
+    ys = [y0]
+    for _ in range(steps):
+        x_n = xs[-1]
+        y_n = ys[-1]
+        k1 = f(x_n, y_n)
+        k2 = f(x_n + h / 2, y_n + h * k1 / 2)
+        k3 = f(x_n + h / 2, y_n + h * k2 / 2)
+        k4 = f(x_n + h, y_n + h * k3)
+        y_next = y_n + (h / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+        xs.append(x_n + h)
+        ys.append(y_next)
+    return np.array(xs, dtype=float), np.array(ys, dtype=float)
+
+def verlet_method(
+    g_expr: sp.Expr,
+    x_sym: sp.Symbol,
+    y_sym: sp.Symbol,
+    x0: float,
+    y0: float,
+    v0: float,
+    h: float,
+    x_end: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    steps = _validate_uniform_steps(x0, x_end, h)
+    g = sp.lambdify((x_sym, y_sym), g_expr, "numpy")
+    xs = [x0]
+    ys = [y0]
+    vs = [v0]
+    a = g(x0, y0)
+    for _ in range(steps):
+        x_n = xs[-1]
+        y_n = ys[-1]
+        v_n = vs[-1]
+        y_next = y_n + v_n * h + 0.5 * a * h * h
+        x_next = x_n + h
+        a_next = g(x_next, y_next)
+        v_next = v_n + 0.5 * (a + a_next) * h
+        xs.append(x_next)
+        ys.append(y_next)
+        vs.append(v_next)
+        a = a_next
+    return np.array(xs, dtype=float), np.array(ys, dtype=float), np.array(vs, dtype=float)
+
+def verlet_error_estimate(
+    g_expr: sp.Expr,
+    x_sym: sp.Symbol,
+    y_sym: sp.Symbol,
+    x0: float,
+    y0: float,
+    v0: float,
+    h: float,
+    x_end: float,
+) -> float:
+    xs_h, ys_h, _ = verlet_method(g_expr, x_sym, y_sym, x0, y0, v0, h, x_end)
+    xs_h2, ys_h2, _ = verlet_method(g_expr, x_sym, y_sym, x0, y0, v0, h / 2, x_end)
+    return float(abs(ys_h2[-1] - ys_h[-1]))
