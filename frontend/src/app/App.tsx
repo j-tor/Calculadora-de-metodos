@@ -32,8 +32,14 @@ function AppContent() {
 
     Object.entries(paramValues).forEach(([key, value]) => {
       if (value === '') return;
-      if (key === 'matrixA' || key === 'vectorB') {
+      if (key === 'matrixA' || key === 'vectorB' || key === 'matrix_type') {
         payload[key] = value;
+        return;
+      }
+      if (key === 'x_values_str' || key === 'y_values_str') {
+        const parts = value.split(',').map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+        const newKey = key === 'x_values_str' ? 'x_values' : 'y_values';
+        payload[newKey] = parts;
         return;
       }
       const num = Number(value);
@@ -77,8 +83,8 @@ function AppContent() {
   };
 
   const bgPrimary = isDark ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]';
-  const bgOverlay = isDark 
-    ? 'bg-gradient-to-br from-[#0F172A] via-[#0F172A]/95 to-[#1E293B]/80' 
+  const bgOverlay = isDark
+    ? 'bg-gradient-to-br from-[#0F172A] via-[#0F172A]/95 to-[#1E293B]/80'
     : 'bg-gradient-to-br from-[#F8FAFC] via-[#F8FAFC]/95 to-[#E2E8F0]/50';
   const gridColor = isDark ? '#3B82F6' : '#CBD5E1';
   const dotColor = isDark ? '#22D3EE' : '#0891B2';
@@ -91,10 +97,10 @@ function AppContent() {
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke={gridColor} strokeWidth="0.5"/>
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke={gridColor} strokeWidth="0.5" />
             </pattern>
             <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
-              <circle cx="2" cy="2" r="1" fill={dotColor}/>
+              <circle cx="2" cy="2" r="1" fill={dotColor} />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
@@ -108,8 +114,8 @@ function AppContent() {
       {/* Main Content */}
       <div className="relative z-10 flex w-full">
         {/* Left Sidebar */}
-        <MethodSidebar 
-          selectedMethod={selectedMethod} 
+        <MethodSidebar
+          selectedMethod={selectedMethod}
           onMethodSelect={setSelectedMethod}
           isCollapsed={isSidebarCollapsed}
         />
@@ -117,7 +123,7 @@ function AppContent() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <TopBar 
+          <TopBar
             onVoiceCommand={handleVoiceCommand}
             onToggleSidebar={handleToggleSidebar}
             isSidebarCollapsed={isSidebarCollapsed}
@@ -174,9 +180,9 @@ function AppContent() {
       </div>
 
       {/* Voice Command Dialog */}
-      <VoiceCommandDialog 
-        isOpen={isVoiceDialogOpen} 
-        onClose={() => setIsVoiceDialogOpen(false)} 
+      <VoiceCommandDialog
+        isOpen={isVoiceDialogOpen}
+        onClose={() => setIsVoiceDialogOpen(false)}
       />
     </div>
   );

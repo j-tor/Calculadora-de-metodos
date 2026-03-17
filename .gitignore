@@ -1,22 +1,29 @@
-__pycache__
-back
-
-# Node.js
+# Node
 node_modules/
+dist/
+build/
+coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
 
-# directorios de build
-dist/
-build/
-out/
-.next/
-
-# variables de entorno
+# Entorno
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Archivos del sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

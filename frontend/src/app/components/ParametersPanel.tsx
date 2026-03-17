@@ -9,7 +9,7 @@ interface ParametersPanelProps {
 }
 
 // Dynamic parameters based on selected method
-const methodParameters: Record<string, Array<{name: string; label: string; type: string; placeholder: string}>> = {
+const methodParameters: Record<string, Array<{ name: string; label: string; type: string; placeholder: string }>> = {
   'newton': [
     { name: 'x0', label: 'Valor Inicial (x₀)', type: 'number', placeholder: '1.0' },
     { name: 'tolerance', label: 'Tolerancia (ε)', type: 'number', placeholder: '0.0001' },
@@ -85,6 +85,25 @@ const methodParameters: Record<string, Array<{name: string; label: string; type:
     { name: 'vectorB', label: 'Vector b', type: 'text', placeholder: '4,5,6' },
     { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
     { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
+    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
+    { name: 'vectorB', label: 'Vector b', type: 'text', placeholder: '4,5,6' },
+    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
+    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
+  ],
+  'lu': [
+    { name: 'matrix_type', label: 'Tipo de Descomposición', type: 'text', placeholder: 'doolittle o crout (por defecto doolittle)' },
+    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
+    { name: 'vectorB', label: 'Vector b (Opcional)', type: 'text', placeholder: '4,5,6' },
+  ],
+  'lagrange': [
+    { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
+    { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
+    { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
+  ],
+  'newton-divided': [
+    { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
+    { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
+    { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
   ],
 };
 
