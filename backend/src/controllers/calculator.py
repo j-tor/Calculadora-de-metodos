@@ -11,28 +11,59 @@ def _tolist(value):
         return value.tolist()
     return value
 
+def _parse_vector(value: str):
+    if value is None:
+        return None
+    parts = [p.strip() for p in value.split(",") if p.strip() != ""]
+    return [float(p) for p in parts]
+
+def _parse_matrix(value: str):
+    if value is None:
+        return None
+    rows = [row.strip() for row in value.split(";") if row.strip() != ""]
+    matrix = []
+    for row in rows:
+        parts = [p.strip() for p in row.split(",") if p.strip() != ""]
+        matrix.append([float(p) for p in parts])
+    return matrix
+
 async def calculate_root_controller(request: CalculationRequest):
     try:
+        x_start = request.x_start if request.x_start is not None else request.a
+        x_end = request.x_end if request.x_end is not None else request.b
+        if request.xf is not None:
+            x_end = request.xf
+        initial_guess = request.initial_guess if request.initial_guess is not None else request.x0
+        n_subintervals = request.n_subintervals if request.n_subintervals is not None else request.n
+        max_iterations = request.max_iterations if request.maxIter is None else request.maxIter
+        matrix_a = request.matrix_a if request.matrix_a is not None else _parse_matrix(request.matrixA)
+        vector_b = request.vector_b if request.vector_b is not None else _parse_vector(request.vectorB)
+
         results = analyze_and_calculate(
             equation_str=request.equation,
             var_name=request.variable,
-            x_start=request.x_start,
-            x_end=request.x_end,
-            initial_guess=request.initial_guess,
+            x_start=x_start,
+            initial_guess=initial_guess,
             tol=request.tolerance,
-            max_iter=request.max_iterations,
+            max_iter=max_iterations,
             requested_method=request.method,
             g_equation_str=request.g_equation,
             x_values=request.x_values,
             y_values=request.y_values,
             x_eval=request.x_eval,
-            matrix_a=request.matrix_a,
-            vector_b=request.vector_b,
+            matrix_a=matrix_a,
+            vector_b=vector_b,
             matrix_type=request.matrix_type,
             lu_variant=request.lu_variant,
             funcs=request.funcs,
             vars_list=request.vars_list,
             values=request.values,
+            n_subintervals=n_subintervals,
+            x0=request.x0,
+            x_end=x_end,
+            y0=request.y0,
+            v0=request.v0,
+            h=request.h,
         )
 
         coordinates = None
@@ -70,6 +101,13 @@ async def calculate_root_controller(request: CalculationRequest):
             u_matrix=_tolist(results.get("U")),
             jacobian=str(results["jacobian"]) if results.get("jacobian") is not None else None,
             jacobian_numeric=_tolist(results.get("jacobian_numeric")),
+            x_values=_tolist(results.get("x_values")),
+            y_values=_tolist(results.get("y_values")),
+            v_values=_tolist(results.get("v_values")),
+            order=results.get("order"),
+            local_order=results.get("local_order"),
+            error=results.get("error"),
+            converged=results.get("converged"),
         )
 
     except ValueError as e:

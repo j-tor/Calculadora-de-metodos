@@ -19,6 +19,16 @@ from .methods import (
     lu_doolittle,
     lu_crout,
     lu_solve,
+    trapezoidal_rule,
+    simpson_one_third_rule,
+    simpson_three_eighths_rule,
+    jacobi_method,
+    gauss_seidel_method,
+    euler_method,
+    rk2_method,
+    rk4_method,
+    verlet_method,
+    verlet_error_estimate,
     jacobian_matrix,
     jacobian_evaluate,
 )
@@ -43,8 +53,14 @@ def analyze_and_calculate(
     funcs: Sequence[str] = None,
     vars_list: Sequence[str] = None,
     values: Sequence[float] = None,
+    n_subintervals: int = None,
+    y0: float = None,
+    v0: float = None,
+    h: float = None,
+    x0: float = None,
 ) -> Dict[str, Any]:
     x = sp.symbols(var_name)
+    y = sp.symbols("y")
 
     def _parse_expr(expr_str: str) -> sp.Expr:
         try:
@@ -109,7 +125,7 @@ def analyze_and_calculate(
                 value = polynomial_interpolation_eval(coeffs, x_eval)
             return {"method": "Interpolación Polinómica", "coefficients": coeffs, "value": value, "x_eval": x_eval}
 
-        elif "newton" in requested_method and "interpol" in requested_method:
+        elif "newton-divided" in requested_method or ("newton" in requested_method and "interpol" in requested_method):
             if x_values is None or y_values is None:
                 raise ValueError("Se requieren x_values y y_values para Interpolación de Newton.")
             coef = newton_divided_differences(x_values, y_values)
@@ -169,7 +185,7 @@ def analyze_and_calculate(
                 sol = lu_solve(L, U, vector_b)
             return {"method": f"LU ({variant})", "L": L, "U": U, "solution": sol}
 
-        elif "jacob" in requested_method:
+        elif "jacobiano" in requested_method or "jacobian" in requested_method:
             if funcs is None or vars_list is None:
                 raise ValueError("Se requieren funcs y vars_list para Jacobiano.")
             vars_syms = [sp.symbols(v) for v in vars_list]
@@ -179,6 +195,102 @@ def analyze_and_calculate(
             if values is not None:
                 J_num = jacobian_evaluate(funcs_expr, vars_syms, values)
             return {"method": "Jacobiano", "jacobian": J, "jacobian_numeric": J_num}
+
+        elif "trapec" in requested_method or "trapez" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para Regla del Trapecio.")
+            if x_start is None or x_end is None:
+                raise ValueError("La Regla del Trapecio requiere x_start y x_end.")
+            if n_subintervals is None:
+                raise ValueError("La Regla del Trapecio requiere n_subintervals.")
+            expr = _parse_expr(equation_str)
+            f = sp.lambdify(x, expr, "numpy")
+            result = trapezoidal_rule(f, x_start, x_end, n_subintervals)
+            return {"method": "Regla del Trapecio", "result": result}
+
+        elif "simpson" in requested_method and ("3/8" in requested_method or "3-8" in requested_method or "3 8" in requested_method):
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para Simpson 3/8.")
+            if x_start is None or x_end is None:
+                raise ValueError("Simpson 3/8 requiere x_start y x_end.")
+            if n_subintervals is None:
+                raise ValueError("Simpson 3/8 requiere n_subintervals.")
+            expr = _parse_expr(equation_str)
+            f = sp.lambdify(x, expr, "numpy")
+            result = simpson_three_eighths_rule(f, x_start, x_end, n_subintervals)
+            return {"method": "Simpson 3/8", "result": result}
+
+        elif "simpson" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para Simpson 1/3.")
+            if x_start is None or x_end is None:
+                raise ValueError("Simpson 1/3 requiere x_start y x_end.")
+            if n_subintervals is None:
+                raise ValueError("Simpson 1/3 requiere n_subintervals.")
+            expr = _parse_expr(equation_str)
+            f = sp.lambdify(x, expr, "numpy")
+            result = simpson_one_third_rule(f, x_start, x_end, n_subintervals)
+            return {"method": "Simpson 1/3", "result": result}
+
+        elif "jacobi" in requested_method:
+            if matrix_a is None or vector_b is None:
+                raise ValueError("Se requieren matrix_a y vector_b para Jacobi.")
+            sol, iters, converged = jacobi_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
+            return {"method": "Jacobi", "solution": sol, "iterations": iters, "converged": converged}
+
+        elif "gauss-seidel" in requested_method or "seidel" in requested_method:
+            if matrix_a is None or vector_b is None:
+                raise ValueError("Se requieren matrix_a y vector_b para Gauss-Seidel.")
+            sol, iters, converged = gauss_seidel_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
+            return {"method": "Gauss-Seidel", "solution": sol, "iterations": iters, "converged": converged}
+
+        elif "euler-order" in requested_method or ("euler" in requested_method and ("orden" in requested_method or "order" in requested_method)):
+            return {"method": "Orden del MÃ©todo de Euler", "order": 1, "local_order": 2}
+
+        elif "euler" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para MÃ©todo de Euler.")
+            if x0 is None or x_end is None or y0 is None or h is None:
+                raise ValueError("Euler requiere x0, x_end, y0 y h.")
+            expr = _parse_expr(equation_str)
+            xs, ys = euler_method(expr, x, y, x0, y0, h, x_end)
+            return {"method": "Euler", "x_values": xs, "y_values": ys, "result": ys[-1]}
+
+        elif "rk2" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para RK2.")
+            if x0 is None or x_end is None or y0 is None or h is None:
+                raise ValueError("RK2 requiere x0, x_end, y0 y h.")
+            expr = _parse_expr(equation_str)
+            xs, ys = rk2_method(expr, x, y, x0, y0, h, x_end)
+            return {"method": "RK2", "x_values": xs, "y_values": ys, "result": ys[-1]}
+
+        elif "rk4" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para RK4.")
+            if x0 is None or x_end is None or y0 is None or h is None:
+                raise ValueError("RK4 requiere x0, x_end, y0 y h.")
+            expr = _parse_expr(equation_str)
+            xs, ys = rk4_method(expr, x, y, x0, y0, h, x_end)
+            return {"method": "RK4", "x_values": xs, "y_values": ys, "result": ys[-1]}
+
+        elif "verlet-error" in requested_method or ("verlet" in requested_method and "error" in requested_method):
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para Error de Verlet.")
+            if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
+                raise ValueError("Error de Verlet requiere x0, x_end, y0, v0 y h.")
+            expr = _parse_expr(equation_str)
+            error = verlet_error_estimate(expr, x, y, x0, y0, v0, h, x_end)
+            return {"method": "Error del MÃ©todo de Verlet", "error": error}
+
+        elif "verlet" in requested_method:
+            if equation_str is None:
+                raise ValueError("Se requiere equation_str para MÃ©todo de Verlet.")
+            if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
+                raise ValueError("Verlet requiere x0, x_end, y0, v0 y h.")
+            expr = _parse_expr(equation_str)
+            xs, ys, vs = verlet_method(expr, x, y, x0, y0, v0, h, x_end)
+            return {"method": "Verlet", "x_values": xs, "y_values": ys, "v_values": vs, "result": ys[-1]}
 
     # 2. Decision Engine Logic (Auto)
     if equation_str is None:
