@@ -62,9 +62,22 @@ def analyze_and_calculate(
     x = sp.symbols(var_name)
     y = sp.symbols("y")
 
-    def _parse_expr(expr_str: str) -> sp.Expr:
+    def _parse_expr(expr_str: str, valid_vars=None) -> sp.Expr:
+        if valid_vars is None:
+            valid_vars = [x]
         try:
-            return sp.parse_expr(expr_str)
+            # Reemplazar '^' por '**' para que SymPy entienda la potenciación
+            expr_str = expr_str.replace('^', '**')
+            expr = sp.parse_expr(expr_str)
+            
+            free_syms = expr.free_symbols
+            unknown = [str(s) for s in free_syms if s not in valid_vars and str(s) not in ['e', 'pi', 'E', 'I']]
+            if unknown:
+                raise ValueError(f"Se encontraron variables no reconocidas: {', '.join(unknown)}. Verifique que la ecuación esté escrita correctamente (ej: use 'x^3' en lugar de 'x3', y '3*x' en lugar de '3x').")
+                
+            return expr
+        except ValueError as ve:
+            raise ve
         except Exception as e:
             raise ValueError(f"Error al interpretar la ecuación: {str(e)}")
 
@@ -189,7 +202,7 @@ def analyze_and_calculate(
             if funcs is None or vars_list is None:
                 raise ValueError("Se requieren funcs y vars_list para Jacobiano.")
             vars_syms = [sp.symbols(v) for v in vars_list]
-            funcs_expr = [_parse_expr(f) for f in funcs]
+            funcs_expr = [_parse_expr(f, valid_vars=vars_syms) for f in funcs]
             J = jacobian_matrix(funcs_expr, vars_syms)
             J_num = None
             if values is not None:

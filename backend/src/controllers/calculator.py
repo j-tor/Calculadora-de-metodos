@@ -112,5 +112,10 @@ async def calculate_root_controller(request: CalculationRequest):
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except (TypeError, AttributeError, NotImplementedError, NameError) as e:
+        raise HTTPException(status_code=400, detail="No se pudo evaluar la función matemática. Verifique que esté escrita correctamente (ej. use '*' para multiplicar, respete los paréntesis).")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+        error_msg = str(e)
+        if "ufunc" in error_msg or "Symbol" in error_msg or "math domain error" in error_msg:
+             raise HTTPException(status_code=400, detail="La ecuación no se pudo evaluar. Verifique la sintaxis u operaciones matemáticas inválidas.")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {error_msg}")
