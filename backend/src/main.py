@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from .routes.calculator import router as calculator_router
+from .routes.method_reflection import router as method_reflection_router
 from .middleware.cors import setup_cors
 
 app = FastAPI(
@@ -14,6 +15,7 @@ setup_cors(app)
 
 # Include Routes
 app.include_router(calculator_router)
+app.include_router(method_reflection_router)
 
 @app.get("/")
 async def root():

@@ -7,6 +7,7 @@ import { ParametersPanel } from './components/ParametersPanel';
 import { DynamicResultsPanel } from './components/DynamicResultsPanel';
 import { GraphPanel } from './components/GraphPanel';
 import { VoiceCommandDialog } from './components/VoiceCommandDialog';
+import { VoiceNumericalController } from './components/voice/VoiceNumericalController';
 
 function AppContent() {
   const [selectedMethod, setSelectedMethod] = useState('newton');
@@ -116,6 +117,8 @@ function AppContent() {
         isOpen={isVoiceDialogOpen} 
         onClose={() => setIsVoiceDialogOpen(false)} 
       />
+
+      <VoiceNumericalController />
     </div>
   );
 }
