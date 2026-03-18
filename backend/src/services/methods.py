@@ -1,6 +1,6 @@
 import numpy as np
 import sympy as sp
-from typing import Callable, List, Dict, Tuple
+from typing import Tuple, Callable, Sequence, List, Dict
 
 def _validate_uniform_steps(x0: float, x_end: float, h: float) -> int:
     if h == 0:
@@ -13,7 +13,7 @@ def _validate_uniform_steps(x0: float, x_end: float, h: float) -> int:
         raise ValueError("El paso h debe avanzar hacia x_end.")
     return steps_rounded
 
-def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
+def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int) -> tuple[float, int, list[dict[str, float]]]:
     if f(a) * f(b) >= 0:
         raise ValueError("El intervalo no cambia de signo (f(a)*f(b) >= 0).")
     
@@ -36,7 +36,7 @@ def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int)
             a = c
     return float(c), iterations, history
 
-def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
+def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> tuple[float, int, list[dict[str, float]]]:
     f_prime_expr = sp.diff(f_expr, x_sym)
     
     # Lambdify for fast evaluation
@@ -66,7 +66,7 @@ def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: flo
         
     return float(x_n), iterations, history
 
-def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
+def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> tuple[float, int, list[dict[str, float]]]:
     g = sp.lambdify(x_sym, g_expr, "numpy")
     x_n = x0
     iterations = 0
@@ -80,7 +80,7 @@ def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float,
         x_n = x_next
     return float(x_n), iterations, history
 
-def fixed_point_convergence(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float = None, interval: Tuple[float, float] = None) -> bool:
+def fixed_point_convergence(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float = None, interval: tuple[float, float] = None) -> bool:
     g_prime = sp.diff(g_expr, x_sym)
     g_prime_f = sp.lambdify(x_sym, g_prime, "numpy")
     if interval is not None:
@@ -92,7 +92,7 @@ def fixed_point_convergence(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float = None,
         raise ValueError("x0 requerido si no se da intervalo.")
     return abs(float(g_prime_f(x0))) < 1.0
 
-def lagrange_interpolation(x_vals: Sequence[float], y_vals: Sequence[float], x: float) -> float:
+def lagrange_interpolation(x_vals: sequence[float], y_vals: sequence[float], x: float) -> float:
     if len(x_vals) != len(y_vals):
         raise ValueError("x_vals y y_vals deben tener la misma longitud.")
     n = len(x_vals)
@@ -153,7 +153,7 @@ def newton_interpolation_eval(x_vals: Sequence[float], coef: Sequence[float], x:
         result = result * (x - x_vals[k]) + coef[k]
     return float(result)
 
-def cubic_spline_coeffs(x_vals: Sequence[float], y_vals: Sequence[float]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def cubic_spline_coeffs(x_vals: Sequence[float], y_vals: Sequence[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if len(x_vals) != len(y_vals):
         raise ValueError("x_vals y y_vals deben tener la misma longitud.")
     n = len(x_vals)
@@ -186,7 +186,7 @@ def cubic_spline_coeffs(x_vals: Sequence[float], y_vals: Sequence[float]) -> Tup
         d[j] = (c[j + 1] - c[j]) / (3 * h[j])
     return a, b, c[:-1], d
 
-def cubic_spline_eval(x_vals: Sequence[float], coeffs: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], x: float) -> float:
+def cubic_spline_eval(x_vals: Sequence[float], coeffs: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], x: float) -> float:
     a, b, c, d = coeffs
     xs = np.array(x_vals, dtype=float)
     if x < xs[0] or x > xs[-1]:
@@ -226,7 +226,7 @@ def solve_diagonal(D: Sequence[Sequence[float]], b: Sequence[float]) -> np.ndarr
         raise ValueError("Cero en la diagonal.")
     return b / diag
 
-def lu_doolittle(A: Sequence[Sequence[float]]) -> Tuple[np.ndarray, np.ndarray]:
+def lu_doolittle(A: Sequence[Sequence[float]]) -> tuple[np.ndarray, np.ndarray]:
     A = np.array(A, dtype=float)
     n = A.shape[0]
     L = np.zeros((n, n))
@@ -241,7 +241,7 @@ def lu_doolittle(A: Sequence[Sequence[float]]) -> Tuple[np.ndarray, np.ndarray]:
             L[j, i] = (A[j, i] - np.dot(L[j, :i], U[:i, i])) / U[i, i]
     return L, U
 
-def lu_crout(A: Sequence[Sequence[float]]) -> Tuple[np.ndarray, np.ndarray]:
+def lu_crout(A: Sequence[Sequence[float]]) -> tuple[np.ndarray, np.ndarray]:
     A = np.array(A, dtype=float)
     n = A.shape[0]
     L = np.zeros((n, n))
@@ -306,7 +306,7 @@ def jacobi_method(
     x0: Sequence[float] = None,
     tol: float = 1e-6,
     max_iter: int = 100,
-) -> Tuple[np.ndarray, int, bool]:
+) -> tuple[np.ndarray, int, bool]:
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float)
     n = A.shape[0]
@@ -332,7 +332,7 @@ def gauss_seidel_method(
     x0: Sequence[float] = None,
     tol: float = 1e-6,
     max_iter: int = 100,
-) -> Tuple[np.ndarray, int, bool]:
+) -> tuple[np.ndarray, int, bool]:
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float)
     n = A.shape[0]
@@ -361,7 +361,7 @@ def euler_method(
     y0: float,
     h: float,
     x_end: float,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     steps = _validate_uniform_steps(x0, x_end, h)
     f = sp.lambdify((x_sym, y_sym), f_expr, "numpy")
     xs = [x0]
@@ -382,7 +382,7 @@ def rk2_method(
     y0: float,
     h: float,
     x_end: float,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     steps = _validate_uniform_steps(x0, x_end, h)
     f = sp.lambdify((x_sym, y_sym), f_expr, "numpy")
     xs = [x0]
@@ -405,7 +405,7 @@ def rk4_method(
     y0: float,
     h: float,
     x_end: float,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     steps = _validate_uniform_steps(x0, x_end, h)
     f = sp.lambdify((x_sym, y_sym), f_expr, "numpy")
     xs = [x0]
@@ -431,7 +431,7 @@ def verlet_method(
     v0: float,
     h: float,
     x_end: float,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     steps = _validate_uniform_steps(x0, x_end, h)
     g = sp.lambdify((x_sym, y_sym), g_expr, "numpy")
     xs = [x0]
