@@ -13,24 +13,30 @@ def _validate_uniform_steps(x0: float, x_end: float, h: float) -> int:
         raise ValueError("El paso h debe avanzar hacia x_end.")
     return steps_rounded
 
-def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int) -> Tuple[float, int]:
+def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
     if f(a) * f(b) >= 0:
         raise ValueError("El intervalo no cambia de signo (f(a)*f(b) >= 0).")
     
     iterations = 0
     c = a
+    history = []
+    
     while (b - a) / 2 > tol and iterations < max_iter:
         iterations += 1
         c = (a + b) / 2
-        if f(c) == 0:
+        fc = f(c)
+        
+        history.append({"x": float(c), "y": float(fc), "iteration": iterations})
+        
+        if fc == 0:
             break
-        if f(a) * f(c) < 0:
+        if f(a) * fc < 0:
             b = c
         else:
             a = c
-    return float(c), iterations
+    return float(c), iterations, history
 
-def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int]:
+def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
     f_prime_expr = sp.diff(f_expr, x_sym)
     
     # Lambdify for fast evaluation
@@ -39,11 +45,14 @@ def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: flo
     
     x_n = x0
     iterations = 0
+    history = []
     
     for _ in range(max_iter):
         iterations += 1
         fx = f(x_n)
         dfx = f_prime(x_n)
+        
+        history.append({"x": float(x_n), "y": float(fx), "iteration": iterations})
         
         if abs(dfx) < 1e-12:
             raise ValueError("Derivada cercana a cero. El método de Newton-Raphson falló.")
@@ -51,23 +60,25 @@ def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: flo
         x_next = x_n - fx / dfx
         
         if abs(x_next - x_n) < tol:
-            return float(x_next), iterations
+            return float(x_next), iterations, history
         
         x_n = x_next
         
-    return float(x_n), iterations
+    return float(x_n), iterations, history
 
-def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int]:
+def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
     g = sp.lambdify(x_sym, g_expr, "numpy")
     x_n = x0
     iterations = 0
+    history = []
     for _ in range(max_iter):
         iterations += 1
         x_next = g(x_n)
+        history.append({"x": float(x_n), "y": float(x_next), "iteration": iterations})
         if abs(x_next - x_n) < tol:
-            return float(x_next), iterations
+            return float(x_next), iterations, history
         x_n = x_next
-    return float(x_n), iterations
+    return float(x_n), iterations, history
 
 def fixed_point_convergence(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float = None, interval: Tuple[float, float] = None) -> bool:
     g_prime = sp.diff(g_expr, x_sym)

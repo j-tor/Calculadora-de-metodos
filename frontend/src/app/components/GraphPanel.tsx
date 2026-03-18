@@ -3,30 +3,14 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-const functionData = [
-  { x: -1, y: -4 },
-  { x: -0.5, y: -5.125 },
-  { x: 0, y: -5 },
-  { x: 0.5, y: -4.375 },
-  { x: 1, y: -6 },
-  { x: 1.5, y: -3.125 },
-  { x: 2, y: -1 },
-  { x: 2.1, y: -0.139 },
-  { x: 2.2, y: 0.848 },
-  { x: 2.5, y: 5.625 },
-  { x: 3, y: 16 },
-];
+import { CalculationResponse } from '../api/calculator';
 
-const iterationPoints = [
-  { x: 1.0, y: -6.0, iteration: 0 },
-  { x: 2.0, y: -1.0, iteration: 1 },
-  { x: 2.5, y: 5.625, iteration: 2 },
-  { x: 2.25, y: 1.89, iteration: 3 },
-  { x: 2.125, y: 0.345, iteration: 4 },
-  { x: 2.0938, y: -0.0096, iteration: 6 },
-];
+interface GraphPanelProps {
+  hasResults: boolean;
+  apiResult: CalculationResponse | null;
+}
 
-export function GraphPanel() {
+export function GraphPanel({ hasResults, apiResult }: GraphPanelProps) {
   const [showGraph, setShowGraph] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -46,6 +30,25 @@ export function GraphPanel() {
   const tooltipBg = isDark ? '#1E293B' : '#FFFFFF';
   const tooltipBorder = isDark ? '#334155' : '#CBD5E1';
   const tooltipText = isDark ? '#F8FAFC' : '#0F172A';
+
+  if (!hasResults || !apiResult) {
+    return null;
+  }
+
+  // Extraer datos de la API para la gráfica general f(x)
+  const functionData = apiResult.coordinates || [];
+
+  // Puntos específicos (iteraciones de ecuaciones dif. o pares (x,y) introducidos en interpolación)
+  let iterationPoints: Array<{x: number, y: number}> = [];
+  if (apiResult.x_values && apiResult.y_values) {
+    iterationPoints = apiResult.x_values.map((xVal, idx) => ({
+      x: xVal,
+      y: apiResult.y_values![idx]
+    }));
+  }
+
+  // Raíz o resultado calculado para trazar la línea de referencia
+  const rootValue = typeof apiResult.result === 'number' ? apiResult.result : null;
 
   return (
     <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
@@ -103,7 +106,9 @@ export function GraphPanel() {
                     labelStyle={{ color: tooltipText }}
                   />
                   <ReferenceLine y={0} stroke={axisColor} strokeDasharray="3 3" />
-                  <ReferenceLine x={2.0938} stroke={isDark ? "#22D3EE" : "#0891B2"} strokeDasharray="5 5" label={{ value: 'Raíz', fill: isDark ? "#22D3EE" : "#0891B2", fontSize: 12 }} />
+                  {rootValue !== null && (
+                     <ReferenceLine x={rootValue} stroke={isDark ? "#22D3EE" : "#0891B2"} strokeDasharray="5 5" label={{ value: 'Raíz', fill: isDark ? "#22D3EE" : "#0891B2", fontSize: 12 }} />
+                  )}
                   <Line
                     type="monotone"
                     dataKey="y"
@@ -128,7 +133,7 @@ export function GraphPanel() {
                     stroke={axisColor}
                     tick={{ fill: axisColor, fontSize: 12 }}
                     axisLine={{ stroke: gridColor }}
-                    domain={[0, 3]}
+                    domain={['auto', 'auto']}
                   />
                   <YAxis
                     type="number"

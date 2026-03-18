@@ -37,6 +37,12 @@ function AppContent() {
         payload[key] = value;
         return;
       }
+      if (key === 'x_values_str' || key === 'y_values_str') {
+        const parts = value.split(',').map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+        const newKey = key === 'x_values_str' ? 'x_values' : 'y_values';
+        payload[newKey] = parts;
+        return;
+      }
       const num = Number(value);
       payload[key] = Number.isFinite(num) ? num : value;
     });
@@ -203,7 +209,7 @@ function AppContent() {
               </div>
 
               <div>
-                <GraphPanel />
+                <GraphPanel hasResults={hasResults} apiResult={apiResult} />
               </div>
             </div>
           </div>

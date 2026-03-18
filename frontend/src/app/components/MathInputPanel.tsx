@@ -1,14 +1,14 @@
-import { useState } from "react";
 import { MathKeyboard } from "./MathKeyboard";
 import { Calculator, Sparkles } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 interface MathInputPanelProps {
   selectedMethod: string;
+  value: string;
+  onChange: (value: string) => void;
 }
 
-export function MathInputPanel({ selectedMethod }: MathInputPanelProps) {
-  const [mathInput, setMathInput] = useState("");
+export function MathInputPanel({ selectedMethod, value, onChange }: MathInputPanelProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -27,7 +27,7 @@ export function MathInputPanel({ selectedMethod }: MathInputPanelProps) {
     : "placeholder-[#94A3B8]";
 
   const handleInsertSymbol = (symbol: string) => {
-    setMathInput((prev) => prev + symbol);
+    onChange(value + symbol);
   };
 
   return (
@@ -41,9 +41,8 @@ export function MathInputPanel({ selectedMethod }: MathInputPanelProps) {
         >
           <div className="flex items-center gap-3">
             <div
-              className={`p-1.5 md:p-2 rounded-lg ${
-                isDark ? "bg-[#3B82F6]/10" : "bg-[#3B82F6]/10"
-              }`}
+              className={`p-1.5 md:p-2 rounded-lg ${isDark ? "bg-[#3B82F6]/10" : "bg-[#3B82F6]/10"
+                }`}
             >
               <Calculator className="w-4 h-4 md:w-5 md:h-5 text-[#3B82F6]" />
             </div>
@@ -74,8 +73,8 @@ export function MathInputPanel({ selectedMethod }: MathInputPanelProps) {
           {/* Large Math Input */}
           <div className="relative">
             <textarea
-              value={mathInput}
-              onChange={(e) => setMathInput(e.target.value)}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="x**3 - 2*x - 5"
               className={`w-full ${bgSecondary} border-2 ${borderSecondary} focus:border-[#3B82F6] rounded-xl px-4 md:px-6 py-4 md:py-5 ${textPrimary} ${placeholder} focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 transition-all resize-none text-lg md:text-xl min-h-[100px] md:min-h-[120px]`}
               style={{ fontFamily: "JetBrains Mono, monospace" }}
