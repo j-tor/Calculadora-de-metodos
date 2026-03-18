@@ -1,6 +1,6 @@
 import numpy as np
 import sympy as sp
-from typing import Tuple, Callable, Sequence, List
+from typing import Callable, List, Dict, Tuple
 
 def _validate_uniform_steps(x0: float, x_end: float, h: float) -> int:
     if h == 0:
