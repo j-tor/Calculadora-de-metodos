@@ -91,16 +91,20 @@ def analyze_and_calculate(
             f_lamb = sp.lambdify(x, expr, "numpy")
             if x_start is None or x_end is None:
                 raise ValueError("El método de Bisección requiere un intervalo (x_start, x_end).")
-            res, iters = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
-            return {"method": "Bisección", "result": res, "iterations": iters, "expression": expr, "symbol": x}
+            res, iters, history = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
+            x_vals = [h["x"] for h in history]
+            y_vals = [h["y"] for h in history]
+            return {"method": "Bisección", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
         
         elif "newton" in requested_method and "interpol" not in requested_method:
             if equation_str is None:
                 raise ValueError("Se requiere equation_str para Newton-Raphson.")
             expr = _parse_expr(equation_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
-            res, iters = newton_raphson_method(expr, x, start_point, tol, max_iter)
-            return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x}
+            res, iters, history = newton_raphson_method(expr, x, start_point, tol, max_iter)
+            x_vals = [h["x"] for h in history]
+            y_vals = [h["y"] for h in history]
+            return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
 
         elif "punto fijo" in requested_method or "fixed" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
@@ -108,8 +112,10 @@ def analyze_and_calculate(
                 raise ValueError("Se requiere equation_str (g(x)) para Punto Fijo.")
             g_expr = _parse_expr(expr_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
-            res, iters = fixed_point_method(g_expr, x, start_point, tol, max_iter)
-            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x}
+            res, iters, history = fixed_point_method(g_expr, x, start_point, tol, max_iter)
+            x_vals = [h["x"] for h in history]
+            y_vals = [h["y"] for h in history]
+            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
 
         elif "convergenciafija" in requested_method or "convergencia fija" in requested_method or "convergence" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
@@ -219,7 +225,10 @@ def analyze_and_calculate(
             expr = _parse_expr(equation_str)
             f = sp.lambdify(x, expr, "numpy")
             result = trapezoidal_rule(f, x_start, x_end, n_subintervals)
-            return {"method": "Regla del Trapecio", "result": result}
+            # Add simple coordinates for visualization
+            x_vals = np.linspace(x_start, x_end, n_subintervals + 1)
+            y_vals = f(x_vals)
+            return {"method": "Regla del Trapecio", "result": result, "x_values": x_vals, "y_values": y_vals}
 
         elif "simpson" in requested_method and ("3/8" in requested_method or "3-8" in requested_method or "3 8" in requested_method):
             if equation_str is None:
@@ -231,7 +240,9 @@ def analyze_and_calculate(
             expr = _parse_expr(equation_str)
             f = sp.lambdify(x, expr, "numpy")
             result = simpson_three_eighths_rule(f, x_start, x_end, n_subintervals)
-            return {"method": "Simpson 3/8", "result": result}
+            x_vals = np.linspace(x_start, x_end, n_subintervals + 1)
+            y_vals = f(x_vals)
+            return {"method": "Simpson 3/8", "result": result, "x_values": x_vals, "y_values": y_vals}
 
         elif "simpson" in requested_method:
             if equation_str is None:
@@ -243,7 +254,9 @@ def analyze_and_calculate(
             expr = _parse_expr(equation_str)
             f = sp.lambdify(x, expr, "numpy")
             result = simpson_one_third_rule(f, x_start, x_end, n_subintervals)
-            return {"method": "Simpson 1/3", "result": result}
+            x_vals = np.linspace(x_start, x_end, n_subintervals + 1)
+            y_vals = f(x_vals)
+            return {"method": "Simpson 1/3", "result": result, "x_values": x_vals, "y_values": y_vals}
 
         elif "jacobi" in requested_method:
             if matrix_a is None or vector_b is None:
@@ -265,7 +278,7 @@ def analyze_and_calculate(
                 raise ValueError("Se requiere equation_str para MÃ©todo de Euler.")
             if x0 is None or x_end is None or y0 is None or h is None:
                 raise ValueError("Euler requiere x0, x_end, y0 y h.")
-            expr = _parse_expr(equation_str)
+            expr = _parse_expr(equation_str, valid_vars=[x, y])
             xs, ys = euler_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "Euler", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
@@ -274,7 +287,7 @@ def analyze_and_calculate(
                 raise ValueError("Se requiere equation_str para RK2.")
             if x0 is None or x_end is None or y0 is None or h is None:
                 raise ValueError("RK2 requiere x0, x_end, y0 y h.")
-            expr = _parse_expr(equation_str)
+            expr = _parse_expr(equation_str, valid_vars=[x, y])
             xs, ys = rk2_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "RK2", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
@@ -283,7 +296,7 @@ def analyze_and_calculate(
                 raise ValueError("Se requiere equation_str para RK4.")
             if x0 is None or x_end is None or y0 is None or h is None:
                 raise ValueError("RK4 requiere x0, x_end, y0 y h.")
-            expr = _parse_expr(equation_str)
+            expr = _parse_expr(equation_str, valid_vars=[x, y])
             xs, ys = rk4_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "RK4", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
@@ -292,16 +305,16 @@ def analyze_and_calculate(
                 raise ValueError("Se requiere equation_str para Error de Verlet.")
             if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
                 raise ValueError("Error de Verlet requiere x0, x_end, y0, v0 y h.")
-            expr = _parse_expr(equation_str)
+            expr = _parse_expr(equation_str, valid_vars=[x, y])
             error = verlet_error_estimate(expr, x, y, x0, y0, v0, h, x_end)
-            return {"method": "Error del MÃ©todo de Verlet", "error": error}
+            return {"method": "Error del Método de Verlet", "error": error}
 
         elif "verlet" in requested_method:
             if equation_str is None:
                 raise ValueError("Se requiere equation_str para MÃ©todo de Verlet.")
             if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
                 raise ValueError("Verlet requiere x0, x_end, y0, v0 y h.")
-            expr = _parse_expr(equation_str)
+            expr = _parse_expr(equation_str, valid_vars=[x, y])
             xs, ys, vs = verlet_method(expr, x, y, x0, y0, v0, h, x_end)
             return {"method": "Verlet", "x_values": xs, "y_values": ys, "v_values": vs, "result": ys[-1]}
 
@@ -317,13 +330,17 @@ def analyze_and_calculate(
             f_b = f_lamb(x_end)
             if f_a * f_b < 0:
                 # Bisection is reliable if sign changes
-                res, iters = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
+                res, iters, history = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
+                x_vals = [h["x"] for h in history]
+                y_vals = [h["y"] for h in history]
                 return {
                     "method": "Bisección",
                     "result": res,
                     "iterations": iters,
                     "expression": expr,
-                    "symbol": x
+                    "symbol": x,
+                    "x_values": x_vals,
+                    "y_values": y_vals
                 }
         except Exception:
             pass # Fallback to Newton if evaluation fails
@@ -332,13 +349,17 @@ def analyze_and_calculate(
     start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
     
     try:
-        res, iters = newton_raphson_method(expr, x, start_point, tol, max_iter)
+        res, iters, history = newton_raphson_method(expr, x, start_point, tol, max_iter)
+        x_vals = [h["x"] for h in history]
+        y_vals = [h["y"] for h in history]
         return {
             "method": "Newton-Raphson",
             "result": res,
             "iterations": iters,
             "expression": expr,
-            "symbol": x
+            "symbol": x,
+            "x_values": x_vals,
+            "y_values": y_vals
         }
     except Exception as e:
         # If Newton fails, try to find any alternative or bubble up the error
