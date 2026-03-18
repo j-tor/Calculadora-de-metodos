@@ -172,7 +172,7 @@ function AppContent() {
 
               {/* Graph Visualization */}
               <div>
-                <GraphPanel />
+                <GraphPanel hasResults={hasResults} apiResult={apiResult} />
               </div>
             </div>
           </div>

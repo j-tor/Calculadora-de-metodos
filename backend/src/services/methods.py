@@ -39,11 +39,14 @@ def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: flo
     
     x_n = x0
     iterations = 0
+    history = []
     
     for _ in range(max_iter):
         iterations += 1
         fx = f(x_n)
         dfx = f_prime(x_n)
+        
+        history.append({"x": float(x_n), "y": float(fx), "iteration": iterations})
         
         if abs(dfx) < 1e-12:
             raise ValueError("Derivada cercana a cero. El método de Newton-Raphson falló.")
@@ -51,23 +54,25 @@ def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: flo
         x_next = x_n - fx / dfx
         
         if abs(x_next - x_n) < tol:
-            return float(x_next), iterations
+            return float(x_next), iterations, history
         
         x_n = x_next
         
-    return float(x_n), iterations
+    return float(x_n), iterations, history
 
-def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int]:
+def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int, list]:
     g = sp.lambdify(x_sym, g_expr, "numpy")
     x_n = x0
     iterations = 0
+    history = []
     for _ in range(max_iter):
         iterations += 1
         x_next = g(x_n)
+        history.append({"x": float(x_n), "y": float(x_next), "iteration": iterations})
         if abs(x_next - x_n) < tol:
-            return float(x_next), iterations
+            return float(x_next), iterations, history
         x_n = x_next
-    return float(x_n), iterations
+    return float(x_n), iterations, history
 
 def fixed_point_convergence(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float = None, interval: Tuple[float, float] = None) -> bool:
     g_prime = sp.diff(g_expr, x_sym)
