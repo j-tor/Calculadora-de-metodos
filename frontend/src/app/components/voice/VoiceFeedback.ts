@@ -53,13 +53,25 @@ export class VoiceFeedback {
   }
 
   static async readResult(result: any) {
-    let msg = `El resultado es ${result.value}`;
+    let msg = '';
+    if (result.method_used) {
+      msg += `Usando ${result.method_used}. `;
+    }
+    if (result.result !== undefined && result.result !== null) {
+      msg += `El resultado es ${result.result}`;
+    } else if (result.value !== undefined && result.value !== null) {
+      msg += `El valor es ${result.value}`;
+    }
     if (result.iterations !== undefined) {
       msg += `, con ${result.iterations} iteraciones`;
     }
     if (result.error !== undefined) {
       msg += ` y un error de ${result.error}`;
     }
+    if (result.converged !== undefined) {
+      msg += result.converged ? '. El método convergió' : '. El método no convergió';
+    }
+    if (!msg) msg = 'Cálculo completado exitosamente';
     await this.speak(msg);
   }
 

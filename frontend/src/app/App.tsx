@@ -38,6 +38,16 @@ function AppContent() {
         payload[key] = value;
         return;
       }
+      // Parse comma-separated values into arrays of numbers
+      if (key === "x_values" || key === "y_values" || key === "values") {
+        payload[key] = value.split(",").map((v) => parseFloat(v.trim())).filter((n) => !isNaN(n));
+        return;
+      }
+      // Parse comma-separated strings into string arrays
+      if (key === "funcs" || key === "vars_list") {
+        payload[key] = value.split(",").map((v) => v.trim()).filter((s) => s !== "");
+        return;
+      }
       const num = Number(value);
       payload[key] = Number.isFinite(num) ? num : value;
     });
@@ -84,6 +94,10 @@ function AppContent() {
 
   const handleMethodSelect = (method: string) => {
     setSelectedMethod(method);
+    // Clear previous errors and results when switching methods
+    setApiError(null);
+    setApiResult(null);
+    setHasResults(false);
 
     if (window.innerWidth < 1024) {
       setIsSidebarCollapsed(true);
@@ -171,6 +185,8 @@ function AppContent() {
                     onCalculate={handleCalculate}
                     values={paramValues}
                     onValueChange={handleParamChange}
+                    apiError={apiError}
+                    isLoading={isLoading}
                   />
                 </div>
               </div>

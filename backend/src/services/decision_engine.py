@@ -73,17 +73,17 @@ def analyze_and_calculate(
         requested_method = requested_method.lower()
         if "bisec" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para Bisección.")
+                raise ValueError("Escribe una ecuación f(x) en el editor matemático para usar Bisección. Ejemplo: x**2 - 4")
             expr = _parse_expr(equation_str)
             f_lamb = sp.lambdify(x, expr, "numpy")
             if x_start is None or x_end is None:
-                raise ValueError("El método de Bisección requiere un intervalo (x_start, x_end).")
+                raise ValueError("El método de Bisección requiere los límites del intervalo: llena los campos 'a' (inferior) y 'b' (superior).")
             res, iters = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
             return {"method": "Bisección", "result": res, "iterations": iters, "expression": expr, "symbol": x}
         
         elif "newton" in requested_method and "interpol" not in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para Newton-Raphson.")
+                raise ValueError("Escribe una ecuación f(x) en el editor matemático para usar Newton-Raphson. Ejemplo: x**3 - 2*x - 5")
             expr = _parse_expr(equation_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
             res, iters = newton_raphson_method(expr, x, start_point, tol, max_iter)
@@ -92,7 +92,7 @@ def analyze_and_calculate(
         elif "punto fijo" in requested_method or "fixed" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
             if expr_str is None:
-                raise ValueError("Se requiere equation_str (g(x)) para Punto Fijo.")
+                raise ValueError("Escribe la función de iteración g(x) en el editor matemático para Punto Fijo. Ejemplo: (x + 2/x) / 2")
             g_expr = _parse_expr(expr_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
             res, iters = fixed_point_method(g_expr, x, start_point, tol, max_iter)
@@ -101,7 +101,7 @@ def analyze_and_calculate(
         elif "convergenciafija" in requested_method or "convergencia fija" in requested_method or "convergence" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
             if expr_str is None:
-                raise ValueError("Se requiere equation_str (g(x)) para Convergencia Fija.")
+                raise ValueError("Escribe la función g(x) en el editor matemático para verificar la convergencia.")
             g_expr = _parse_expr(expr_str)
             interval = (x_start, x_end) if (x_start is not None and x_end is not None) else None
             converges = fixed_point_convergence(g_expr, x, x0=initial_guess, interval=interval)
@@ -109,7 +109,7 @@ def analyze_and_calculate(
 
         elif "lagrange" in requested_method:
             if x_values is None or y_values is None:
-                raise ValueError("Se requieren x_values y y_values para Lagrange.")
+                raise ValueError("Ingresa los puntos conocidos: llena los campos 'Valores de X' y 'Valores de Y' separados por comas (ej: 1,2,3 y 4,5,6).")
             value = None
             if x_eval is not None:
                 value = lagrange_interpolation(x_values, y_values, x_eval)
@@ -118,7 +118,7 @@ def analyze_and_calculate(
 
         elif "polinomica" in requested_method or "polynomial" in requested_method:
             if x_values is None or y_values is None:
-                raise ValueError("Se requieren x_values y y_values para Interpolación Polinómica.")
+                raise ValueError("Ingresa los puntos conocidos: llena los campos 'Valores de X' y 'Valores de Y' separados por comas.")
             coeffs = polynomial_interpolation_coeffs(x_values, y_values)
             value = None
             if x_eval is not None:
@@ -127,7 +127,7 @@ def analyze_and_calculate(
 
         elif "newton-divided" in requested_method or ("newton" in requested_method and "interpol" in requested_method):
             if x_values is None or y_values is None:
-                raise ValueError("Se requieren x_values y y_values para Interpolación de Newton.")
+                raise ValueError("Ingresa los puntos conocidos: llena los campos 'Valores de X' y 'Valores de Y' separados por comas.")
             coef = newton_divided_differences(x_values, y_values)
             value = None
             if x_eval is not None:
@@ -136,7 +136,7 @@ def analyze_and_calculate(
 
         elif "trazos" in requested_method or "spline" in requested_method or "cubicos" in requested_method:
             if x_values is None or y_values is None:
-                raise ValueError("Se requieren x_values y y_values para Trazos Cúbicos.")
+                raise ValueError("Ingresa los puntos conocidos: llena los campos 'Valores de X' y 'Valores de Y' separados por comas.")
             coeffs = cubic_spline_coeffs(x_values, y_values)
             value = None
             if x_eval is not None:
@@ -145,7 +145,7 @@ def analyze_and_calculate(
 
         elif "matriz" in requested_method or "triangular" in requested_method or "diagonal" in requested_method:
             if matrix_a is None or vector_b is None:
-                raise ValueError("Se requieren matrix_a y vector_b para resolver matrices.")
+                raise ValueError("Ingresa la Matriz A y el Vector b. Usa ';' para separar filas y ',' para columnas (ej: Matriz: 1,2;3,4 | Vector: 5,6).")
             mtype = matrix_type
             if mtype is None:
                 if "superior" in requested_method or "upper" in requested_method:
@@ -163,11 +163,11 @@ def analyze_and_calculate(
             if mtype == "diagonal":
                 sol = solve_diagonal(matrix_a, vector_b)
                 return {"method": "Diagonal", "solution": sol}
-            raise ValueError("matrix_type debe ser upper, lower o diagonal.")
+            raise ValueError("Selecciona el tipo de matriz: 'upper' (triangular superior), 'lower' (triangular inferior) o 'diagonal'.")
 
         elif "lu" in requested_method or "doolittle" in requested_method or "crout" in requested_method or "kourt" in requested_method:
             if matrix_a is None:
-                raise ValueError("Se requiere matrix_a para LU.")
+                raise ValueError("Ingresa la Matriz A para la descomposición LU. Usa ';' para separar filas y ',' para columnas.")
             variant = lu_variant
             if variant is None:
                 if "doolittle" in requested_method:
@@ -179,7 +179,7 @@ def analyze_and_calculate(
             elif variant == "crout":
                 L, U = lu_crout(matrix_a)
             else:
-                raise ValueError("lu_variant debe ser doolittle o crout.")
+                raise ValueError("Selecciona la variante de LU: 'doolittle' o 'crout'.")
             sol = None
             if vector_b is not None:
                 sol = lu_solve(L, U, vector_b)
@@ -187,7 +187,7 @@ def analyze_and_calculate(
 
         elif "jacobiano" in requested_method or "jacobian" in requested_method:
             if funcs is None or vars_list is None:
-                raise ValueError("Se requieren funcs y vars_list para Jacobiano.")
+                raise ValueError("Ingresa las funciones y las variables para calcular el Jacobiano.")
             vars_syms = [sp.symbols(v) for v in vars_list]
             funcs_expr = [_parse_expr(f) for f in funcs]
             J = jacobian_matrix(funcs_expr, vars_syms)
@@ -198,11 +198,11 @@ def analyze_and_calculate(
 
         elif "trapec" in requested_method or "trapez" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para Regla del Trapecio.")
+                raise ValueError("Escribe f(x) en el editor matemático para la Regla del Trapecio. Ejemplo: x**2")
             if x_start is None or x_end is None:
-                raise ValueError("La Regla del Trapecio requiere x_start y x_end.")
+                raise ValueError("Llena los campos 'a' (límite inferior) y 'b' (límite superior) del intervalo.")
             if n_subintervals is None:
-                raise ValueError("La Regla del Trapecio requiere n_subintervals.")
+                raise ValueError("Ingresa el número de subintervalos (n) para la Regla del Trapecio.")
             expr = _parse_expr(equation_str)
             f = sp.lambdify(x, expr, "numpy")
             result = trapezoidal_rule(f, x_start, x_end, n_subintervals)
@@ -210,11 +210,11 @@ def analyze_and_calculate(
 
         elif "simpson" in requested_method and ("3/8" in requested_method or "3-8" in requested_method or "3 8" in requested_method):
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para Simpson 3/8.")
+                raise ValueError("Escribe f(x) en el editor matemático para Simpson 3/8. Ejemplo: sin(x)")
             if x_start is None or x_end is None:
-                raise ValueError("Simpson 3/8 requiere x_start y x_end.")
+                raise ValueError("Llena los campos 'a' y 'b' del intervalo para Simpson 3/8.")
             if n_subintervals is None:
-                raise ValueError("Simpson 3/8 requiere n_subintervals.")
+                raise ValueError("Ingresa el número de subintervalos (n) para Simpson 3/8. Debe ser múltiplo de 3.")
             expr = _parse_expr(equation_str)
             f = sp.lambdify(x, expr, "numpy")
             result = simpson_three_eighths_rule(f, x_start, x_end, n_subintervals)
@@ -222,11 +222,11 @@ def analyze_and_calculate(
 
         elif "simpson" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para Simpson 1/3.")
+                raise ValueError("Escribe f(x) en el editor matemático para Simpson 1/3. Ejemplo: cos(x)")
             if x_start is None or x_end is None:
-                raise ValueError("Simpson 1/3 requiere x_start y x_end.")
+                raise ValueError("Llena los campos 'a' y 'b' del intervalo para Simpson 1/3.")
             if n_subintervals is None:
-                raise ValueError("Simpson 1/3 requiere n_subintervals.")
+                raise ValueError("Ingresa el número de subintervalos (n) para Simpson 1/3. Debe ser un número par.")
             expr = _parse_expr(equation_str)
             f = sp.lambdify(x, expr, "numpy")
             result = simpson_one_third_rule(f, x_start, x_end, n_subintervals)
@@ -234,13 +234,13 @@ def analyze_and_calculate(
 
         elif "jacobi" in requested_method:
             if matrix_a is None or vector_b is None:
-                raise ValueError("Se requieren matrix_a y vector_b para Jacobi.")
+                raise ValueError("Ingresa la Matriz A y el Vector b para el método de Jacobi.")
             sol, iters, converged = jacobi_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
             return {"method": "Jacobi", "solution": sol, "iterations": iters, "converged": converged}
 
         elif "gauss-seidel" in requested_method or "seidel" in requested_method:
             if matrix_a is None or vector_b is None:
-                raise ValueError("Se requieren matrix_a y vector_b para Gauss-Seidel.")
+                raise ValueError("Ingresa la Matriz A y el Vector b para Gauss-Seidel.")
             sol, iters, converged = gauss_seidel_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
             return {"method": "Gauss-Seidel", "solution": sol, "iterations": iters, "converged": converged}
 
@@ -249,52 +249,52 @@ def analyze_and_calculate(
 
         elif "euler" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para MÃ©todo de Euler.")
+                raise ValueError("Escribe f(x, y) en el editor matemático para el Método de Euler. Ejemplo: x + y")
             if x0 is None or x_end is None or y0 is None or h is None:
-                raise ValueError("Euler requiere x0, x_end, y0 y h.")
+                raise ValueError("Euler requiere todos los campos: x₀, y₀, paso (h) y valor final (xf).")
             expr = _parse_expr(equation_str)
             xs, ys = euler_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "Euler", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
         elif "rk2" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para RK2.")
+                raise ValueError("Escribe f(x, y) en el editor matemático para RK2. Ejemplo: x + y")
             if x0 is None or x_end is None or y0 is None or h is None:
-                raise ValueError("RK2 requiere x0, x_end, y0 y h.")
+                raise ValueError("RK2 requiere todos los campos: x₀, y₀, paso (h) y valor final (xf).")
             expr = _parse_expr(equation_str)
             xs, ys = rk2_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "RK2", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
         elif "rk4" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para RK4.")
+                raise ValueError("Escribe f(x, y) en el editor matemático para RK4. Ejemplo: -2*y + x")
             if x0 is None or x_end is None or y0 is None or h is None:
-                raise ValueError("RK4 requiere x0, x_end, y0 y h.")
+                raise ValueError("RK4 requiere todos los campos: x₀, y₀, paso (h) y valor final (xf).")
             expr = _parse_expr(equation_str)
             xs, ys = rk4_method(expr, x, y, x0, y0, h, x_end)
             return {"method": "RK4", "x_values": xs, "y_values": ys, "result": ys[-1]}
 
         elif "verlet-error" in requested_method or ("verlet" in requested_method and "error" in requested_method):
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para Error de Verlet.")
+                raise ValueError("Escribe f(x, y) en el editor matemático para estimar el error de Verlet.")
             if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
-                raise ValueError("Error de Verlet requiere x0, x_end, y0, v0 y h.")
+                raise ValueError("Error de Verlet requiere todos los campos: x₀, y₀, v₀, paso (h) y valor final (xf).")
             expr = _parse_expr(equation_str)
             error = verlet_error_estimate(expr, x, y, x0, y0, v0, h, x_end)
             return {"method": "Error del MÃ©todo de Verlet", "error": error}
 
         elif "verlet" in requested_method:
             if equation_str is None:
-                raise ValueError("Se requiere equation_str para MÃ©todo de Verlet.")
+                raise ValueError("Escribe f(x, y) en el editor matemático para el Método de Verlet.")
             if x0 is None or x_end is None or y0 is None or v0 is None or h is None:
-                raise ValueError("Verlet requiere x0, x_end, y0, v0 y h.")
+                raise ValueError("Verlet requiere todos los campos: x₀, y₀, v₀, paso (h) y valor final (xf).")
             expr = _parse_expr(equation_str)
             xs, ys, vs = verlet_method(expr, x, y, x0, y0, v0, h, x_end)
             return {"method": "Verlet", "x_values": xs, "y_values": ys, "v_values": vs, "result": ys[-1]}
 
     # 2. Decision Engine Logic (Auto)
     if equation_str is None:
-        raise ValueError("Se requiere equation_str para el modo automático.")
+        raise ValueError("Escribe una ecuación f(x) en el editor matemático. Ejemplo: x**2 - 4")
     expr = _parse_expr(equation_str)
     f_lamb = sp.lambdify(x, expr, "numpy")
     if x_start is not None and x_end is not None:
