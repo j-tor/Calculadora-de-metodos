@@ -308,7 +308,7 @@ def jacobi_method(
     x0: Sequence[float] = None,
     tol: float = 1e-6,
     max_iter: int = 100,
-) -> Tuple[np.ndarray, int, bool]:
+) -> Tuple[np.ndarray, int, bool, List[float]]:
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float)
     n = A.shape[0]
@@ -321,12 +321,15 @@ def jacobi_method(
     x = np.zeros(n) if x0 is None else np.array(x0, dtype=float)
     D = np.diag(A)
     R = A - np.diagflat(D)
+    errors: List[float] = []
     for k in range(max_iter):
         x_new = (b - np.dot(R, x)) / D
-        if np.linalg.norm(x_new - x, ord=np.inf) < tol:
-            return x_new, k + 1, True
+        err = float(np.linalg.norm(x_new - x, ord=np.inf))
+        errors.append(err)
+        if err < tol:
+            return x_new, k + 1, True, errors
         x = x_new
-    return x, max_iter, False
+    return x, max_iter, False, errors
 
 def gauss_seidel_method(
     A: Sequence[Sequence[float]],
@@ -334,7 +337,7 @@ def gauss_seidel_method(
     x0: Sequence[float] = None,
     tol: float = 1e-6,
     max_iter: int = 100,
-) -> Tuple[np.ndarray, int, bool]:
+) -> Tuple[np.ndarray, int, bool, List[float]]:
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float)
     n = A.shape[0]
@@ -345,15 +348,18 @@ def gauss_seidel_method(
     if np.any(np.abs(np.diag(A)) < 1e-12):
         raise ValueError("Cero en la diagonal.")
     x = np.zeros(n) if x0 is None else np.array(x0, dtype=float)
+    errors: List[float] = []
     for k in range(max_iter):
         x_old = x.copy()
         for i in range(n):
             s1 = np.dot(A[i, :i], x[:i])
             s2 = np.dot(A[i, i + 1:], x_old[i + 1:])
             x[i] = (b[i] - s1 - s2) / A[i, i]
-        if np.linalg.norm(x - x_old, ord=np.inf) < tol:
-            return x, k + 1, True
-    return x, max_iter, False
+        err = float(np.linalg.norm(x - x_old, ord=np.inf))
+        errors.append(err)
+        if err < tol:
+            return x, k + 1, True, errors
+    return x, max_iter, False, errors
 
 def euler_method(
     f_expr: sp.Expr,

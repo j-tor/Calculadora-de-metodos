@@ -72,3 +72,4 @@ class CalculationResponse(BaseModel):
     errors: Optional[List[float]] = None
     converged: Optional[bool] = None
     x_eval: Optional[float] = None
+    tolerance: Optional[float] = None

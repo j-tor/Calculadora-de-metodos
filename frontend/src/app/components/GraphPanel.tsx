@@ -47,6 +47,8 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
   const tooltipText = isDark ? "#F8FAFC" : "#0F172A";
   const isInterpolationMethod = ["lagrange", "newton-divided", "cubic-spline"].includes(selectedMethod);
   const isRootMethod = ["bisection", "newton", "fixed-point"].includes(selectedMethod);
+  const isLuMethod = selectedMethod === "lu";
+  const isJacobiOrGaussSeidel = ["jacobi", "gauss-seidel"].includes(selectedMethod);
 
   if (!hasResults || !apiResult) {
     return null;
@@ -155,10 +157,22 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
           <h3
             className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}
           >
-            {isInterpolationMethod ? "Gráfica de Interpolación" : "Visualización Gráfica"}
+            {isInterpolationMethod
+              ? "Gráfica de Interpolación"
+              : isLuMethod
+                ? "Descomposición LU"
+                : isJacobiOrGaussSeidel
+                  ? "Convergencia (Error vs Iteración)"
+                  : "Visualización Gráfica"}
           </h3>
           <p className={`text-xs md:text-sm ${textSecondary} mt-1 text-left`}>
-            {isInterpolationMethod ? "Curva interpolada y puntos de entrada" : "Gráfica de la función y proceso de convergencia"}
+            {isInterpolationMethod
+              ? "Curva interpolada y puntos de entrada"
+              : isLuMethod
+                ? "Matriz L, Matriz U y solución"
+                : isJacobiOrGaussSeidel
+                  ? "Error por iteración (escala log)"
+                  : "Gráfica de la función y proceso de convergencia"}
           </p>
         </div>
         {showGraph ? (
@@ -170,7 +184,288 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
 
       {showGraph && (
         <div className="p-6">
-          {isInterpolationMethod ? (
+          {isLuMethod ? (
+            <div className="space-y-4">
+              {Array.isArray(apiResult.l_matrix) && apiResult.l_matrix.length > 0 && (
+                <div
+                  className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}
+                  style={{ borderLeft: `3px solid #3B82F6` }}
+                >
+                  <h4 className={`text-sm font-semibold ${textTertiary} mb-3`}>Matriz L</h4>
+                  {(() => {
+                    const L = apiResult.l_matrix as number[][];
+                    const rows = L.length;
+                    const cols = L[0]?.length ?? 0;
+                    const luCellTextColor = isDark ? "#F8FAFC" : "#0F172A";
+                    const luHeaderTextColor = isDark ? "#64748B" : "#475569";
+                    const gridCells: JSX.Element[] = [];
+
+                    // Top-left corner
+                    gridCells.push(
+                      <div
+                        key="corner"
+                        className="py-2 px-4 text-center"
+                        style={{
+                          fontFamily: "JetBrains Mono, monospace",
+                          border: `1px solid ${borderChart}`,
+                          color: luHeaderTextColor,
+                        }}
+                      />
+                    );
+
+                    // Column headers
+                    for (let cIdx = 0; cIdx < cols; cIdx += 1) {
+                      gridCells.push(
+                        <div
+                          key={`col-${cIdx}`}
+                          className="py-2 px-4 text-center"
+                          style={{
+                            fontFamily: "JetBrains Mono, monospace",
+                            border: `1px solid ${borderChart}`,
+                            color: luHeaderTextColor,
+                          }}
+                        >
+                          C{cIdx + 1}
+                        </div>
+                      );
+                    }
+
+                    // Rows + values
+                    for (let rIdx = 0; rIdx < rows; rIdx += 1) {
+                      gridCells.push(
+                        <div
+                          key={`row-${rIdx}-label`}
+                          className="py-2 px-4 text-center"
+                          style={{
+                            fontFamily: "JetBrains Mono, monospace",
+                            border: `1px solid ${borderChart}`,
+                            color: luHeaderTextColor,
+                          }}
+                        >
+                          F{rIdx + 1}
+                        </div>
+                      );
+
+                      for (let cIdx = 0; cIdx < cols; cIdx += 1) {
+                        const val = L[rIdx]?.[cIdx] ?? 0;
+                        gridCells.push(
+                          <div
+                            key={`row-${rIdx}-col-${cIdx}`}
+                            className="py-2 px-4 text-center"
+                            style={{
+                              fontFamily: "JetBrains Mono, monospace",
+                              border: `1px solid ${borderChart}`,
+                              color: luCellTextColor,
+                            }}
+                          >
+                            {Number(val).toFixed(6)}
+                          </div>
+                        );
+                      }
+                    }
+
+                    return (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: `auto repeat(${cols}, minmax(0, 1fr))`,
+                          gap: 0,
+                        }}
+                      >
+                        {gridCells}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {Array.isArray(apiResult.u_matrix) && apiResult.u_matrix.length > 0 && (
+                <div
+                  className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}
+                  style={{ borderLeft: `3px solid #22D3EE` }}
+                >
+                  <h4 className={`text-sm font-semibold ${textTertiary} mb-3`}>Matriz U</h4>
+                  {(() => {
+                    const U = apiResult.u_matrix as number[][];
+                    const rows = U.length;
+                    const cols = U[0]?.length ?? 0;
+                    const luCellTextColor = isDark ? "#F8FAFC" : "#0F172A";
+                    const luHeaderTextColor = isDark ? "#64748B" : "#475569";
+                    const gridCells: JSX.Element[] = [];
+
+                    // Top-left corner
+                    gridCells.push(
+                      <div
+                        key="corner"
+                        className="py-2 px-4 text-center"
+                        style={{
+                          fontFamily: "JetBrains Mono, monospace",
+                          border: `1px solid ${borderChart}`,
+                          color: luHeaderTextColor,
+                        }}
+                      />
+                    );
+
+                    // Column headers
+                    for (let cIdx = 0; cIdx < cols; cIdx += 1) {
+                      gridCells.push(
+                        <div
+                          key={`col-${cIdx}`}
+                          className="py-2 px-4 text-center"
+                          style={{
+                            fontFamily: "JetBrains Mono, monospace",
+                            border: `1px solid ${borderChart}`,
+                            color: luHeaderTextColor,
+                          }}
+                        >
+                          C{cIdx + 1}
+                        </div>
+                      );
+                    }
+
+                    // Rows + values
+                    for (let rIdx = 0; rIdx < rows; rIdx += 1) {
+                      gridCells.push(
+                        <div
+                          key={`row-${rIdx}-label`}
+                          className="py-2 px-4 text-center"
+                          style={{
+                            fontFamily: "JetBrains Mono, monospace",
+                            border: `1px solid ${borderChart}`,
+                            color: luHeaderTextColor,
+                          }}
+                        >
+                          F{rIdx + 1}
+                        </div>
+                      );
+
+                      for (let cIdx = 0; cIdx < cols; cIdx += 1) {
+                        const val = U[rIdx]?.[cIdx] ?? 0;
+                        gridCells.push(
+                          <div
+                            key={`row-${rIdx}-col-${cIdx}`}
+                            className="py-2 px-4 text-center"
+                            style={{
+                              fontFamily: "JetBrains Mono, monospace",
+                              border: `1px solid ${borderChart}`,
+                              color: luCellTextColor,
+                            }}
+                          >
+                            {Number(val).toFixed(6)}
+                          </div>
+                        );
+                      }
+                    }
+
+                    return (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: `auto repeat(${cols}, minmax(0, 1fr))`,
+                          gap: 0,
+                        }}
+                      >
+                        {gridCells}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {Array.isArray(apiResult.solution) && apiResult.solution.length > 0 && (
+                <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
+                  <h4 className={`text-sm font-semibold ${textTertiary} mb-3`}>Vector x</h4>
+                  <div className="overflow-x-auto">
+                    <div
+                      className="grid gap-1"
+                      style={{
+                        fontFamily: "JetBrains Mono, monospace",
+                      }}
+                    >
+                      {apiResult.solution.map((val, idx) => (
+                        <div
+                          key={idx}
+                          className={`px-4 py-2 text-center border ${borderChart} rounded`}
+                          style={{ color: isDark ? "#F8FAFC" : "#0F172A" }}
+                        >
+                          x<sub>{idx + 1}</sub> = {Number(val).toFixed(6)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : isJacobiOrGaussSeidel ? (
+            (() => {
+              const errors = Array.isArray(apiResult.errors) ? apiResult.errors : [];
+              const tolerance = typeof (apiResult as any).tolerance === "number" ? (apiResult as any).tolerance : null;
+              const eps = 1e-20;
+              const data = errors.map((err, idx) => {
+                const eAbs = Math.abs(Number(err));
+                return {
+                  iteration: idx + 1,
+                  error: Number(err),
+                  logError: Math.log10(eAbs + eps),
+                };
+              });
+              const tolLog = tolerance != null && tolerance > 0 ? Math.log10(tolerance) : null;
+
+              return (
+                <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
+                  <ResponsiveContainer width="100%" height={380}>
+                    <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="convGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#22D3EE" />
+                          <stop offset="100%" stopColor="#0891B2" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
+                      <XAxis dataKey="iteration" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} axisLine={{ stroke: gridColor }} />
+                      <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} axisLine={{ stroke: gridColor }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: tooltipBg,
+                          border: `1px solid ${tooltipBorder}`,
+                          borderRadius: "8px",
+                          color: tooltipText,
+                          fontFamily: "JetBrains Mono, monospace",
+                          fontSize: "12px",
+                        }}
+                        labelStyle={{ color: tooltipText }}
+                        formatter={(value: any, name: any) => {
+                          if (name === "logError") return [value, "log10(error)"];
+                          if (name === "error") return [value, "error"];
+                          return [value, name];
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="logError"
+                        stroke="url(#convGradient)"
+                        strokeWidth={3}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                      {tolLog != null && (
+                        <ReferenceLine
+                          y={tolLog}
+                          stroke={isDark ? "#22D3EE" : "#0891B2"}
+                          strokeDasharray="6 6"
+                          label={{
+                            value: `tol=${tolerance}`,
+                            fill: isDark ? "#22D3EE" : "#0891B2",
+                            fontSize: 11,
+                          }}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              );
+            })()
+          ) : isInterpolationMethod ? (
             <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
               <ResponsiveContainer width="100%" height={360}>
                 <LineChart data={interpolationCurve} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>

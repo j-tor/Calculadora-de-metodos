@@ -36,7 +36,16 @@ const METHOD_MAP: Record<string, string> = {
   'descomposicion lu': 'lu',
   'descomposición lu': 'lu',
   'doolittle': 'lu',
+  'dollitle': 'lu',
+  'doolitle': 'lu',
+  'doulittle': 'lu',
   'crout': 'lu',
+  'cruot': 'lu',
+  'croot': 'lu',
+  'croutt': 'lu',
+  'croout': 'lu',
+  'croute': 'lu',
+  'kroute': 'lu',
   'krout': 'lu',
   'lagrange': 'lagrange',
   'interpolacion lagrange': 'lagrange',
@@ -513,7 +522,27 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
 
     if (foundMethod) {
       setCurrentMethod(foundMethod);
-      const params = methodParameters[foundMethod] || [];
+
+      let params = methodParameters[foundMethod] || [];
+      let initialCollectedParams: Record<string, string> = {};
+
+      // Inferir variante de LU a partir de lo que dijo el usuario
+      if (foundMethod === 'lu') {
+        const wantsCrout = /(crout|croot|croout|cruot|kroute|kroute|krout)/i.test(
+          normalizedText
+        );
+        const wantsDoolittle = /(dool|doll|doul|doolit|dollit)/i.test(normalizedText);
+
+        if (wantsCrout && !wantsDoolittle) {
+          initialCollectedParams = { lu_variant: 'crout' };
+          params = params.filter((p) => p.name !== 'lu_variant');
+        } else if (wantsDoolittle && !wantsCrout) {
+          initialCollectedParams = { lu_variant: 'doolittle' };
+          params = params.filter((p) => p.name !== 'lu_variant');
+        }
+      }
+
+      setCollectedParams(initialCollectedParams);
       setParamsList(params);
       setCurrentParamIdx(0);
       
@@ -564,14 +593,25 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
         methodToUse === 'cubic-spline') &&
       param?.name === 'x_eval';
 
+    const isLuMatrixA = methodToUse === 'lu' && param?.name === 'matrixA';
+    const isLuVectorB = methodToUse === 'lu' && param?.name === 'vectorB';
+
     setMessage(
       isInterpolationXEval
         ? '¿En qué valor de x deseas evaluar la interpolación?'
+        : isLuMatrixA
+        ? 'Dime la matriz A. Usa “coma” entre números y “punto y coma” entre filas. Debe ser cuadrada.'
+        : isLuVectorB
+        ? 'Dime el vector b. Usa “coma” entre números.'
         : `Por favor dime el valor para: ${param.label}`
     );
     
     const promptText = isInterpolationXEval
       ? '¿En qué valor de x deseas evaluar la interpolación?'
+      : isLuMatrixA
+      ? 'Ejemplo matriz (3 por 3): “4 coma 1 coma 2, punto y coma 1 coma 3 coma 1, punto y coma 2 coma 1 coma 3”.'
+      : isLuVectorB
+      ? 'Ejemplo vector b: “4 coma 5 coma 6”.'
       : `Por favor, dime el valor de ${param.label.split('(')[0].trim()}`;
     speakText(promptText, async () => {
       setStep('listening-param');
@@ -591,6 +631,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     if (!param) return;
     
     let parsedValue = rawText;
+    let isValid = true;
     
     if (param.type === 'number') {
       // Clean up the text for number parsing
@@ -620,9 +661,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       // Extract number (including decimals and negatives)
       // Also allow scientific notation: 1e-6, 2E3
       const numberMatch = numeric.match(/-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/);
-      if (numberMatch) {
-        numeric = numberMatch[0];
-      }
+      if (numberMatch) numeric = numberMatch[0];
 
       // Normalize common STT artifacts like trailing dots: "1." -> "1"
       numeric = numeric.replace(/,$/g, '.').replace(/\.$/g, '');
@@ -631,7 +670,78 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       
       if (numeric && !isNaN(parseFloat(numeric))) {
         parsedValue = numeric;
+      } else {
+        isValid = false;
       }
+    } else if (param.type === 'text') {
+      // Normalización para matrices/vectores (LU), porque el backend espera:
+      // - matrixA: filas separadas por ';' y valores por ','
+      // - vectorB: valores separados por ','
+      if (param.name === 'matrixA') {
+        let t = normText;
+        t = t.replace(/\bpunto\s+y\s+coma\b/gi, ';');
+        t = t.replace(/\bcoma\b/gi, ',');
+        t = t.replace(/\bmenos\b/gi, '-');
+        t = t.replace(/\s+/g, ' ').trim();
+
+        // Poner comas entre números cuando el STT los separa por espacios
+        t = t.replace(
+          /(-?\d+(?:\.\d+)?)\s+(?=-?\d+(?:\.\d+)?)/g,
+          '$1,'
+        );
+
+        // Limpiar espacios alrededor de separadores
+        t = t.replace(/\s*;\s*/g, ';').replace(/\s*,\s*/g, ',');
+        parsedValue = t;
+
+        // Validación simple: filas separadas por ';' y números separados por ','
+        const number = '-?\\d+(?:\\.\\d+)?';
+        const rowRe = new RegExp(`^${number}(,${number})*$`);
+        const rows = t.split(';').map((r) => r.trim()).filter(Boolean);
+        if (rows.length < 1) isValid = false;
+        else {
+          const colCount = rows[0].split(',').filter(Boolean).length;
+          for (const r of rows) {
+            if (!rowRe.test(r)) {
+              isValid = false;
+              break;
+            }
+            const cols = r.split(',').filter(Boolean).length;
+            if (cols !== colCount) {
+              isValid = false;
+              break;
+            }
+          }
+          // Para LU/Jacobi/Gauss-Seidel A debe ser cuadrada
+          if (isValid && rows.length !== colCount) isValid = false;
+        }
+      } else if (param.name === 'vectorB') {
+        let t = normText;
+        t = t.replace(/\bcoma\b/gi, ',');
+        t = t.replace(/\bmenos\b/gi, '-');
+        t = t.replace(/\s+/g, ' ').trim();
+
+        t = t.replace(
+          /(-?\d+(?:\.\d+)?)\s+(?=-?\d+(?:\.\d+)?)/g,
+          '$1,'
+        );
+        t = t.replace(/\s*,\s*/g, ',');
+        parsedValue = t;
+
+        // Validación simple: lista de números separados por ','
+        const number = '-?\\d+(?:\\.\\d+)?';
+        const vecRe = new RegExp(`^${number}(,${number})*$`);
+        if (!vecRe.test(t)) isValid = false;
+      }
+    }
+
+    if (!isValid) {
+      setStep('asking-param');
+      setMessage('No pude entender bien los datos. Repítelo por favor.');
+      speakText('No pude entender bien los datos. Repítelo por favor.', () => {
+        askParam(state.currentParamIdx, state.paramsList);
+      });
+      return;
     }
 
     const newCollected = { ...state.collectedParams, [param.name]: parsedValue };

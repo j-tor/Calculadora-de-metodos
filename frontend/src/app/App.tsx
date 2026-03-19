@@ -127,8 +127,20 @@ function AppContent() {
   const gridColor = isDark ? "#3B82F6" : "#CBD5E1";
   const dotColor = isDark ? "#22D3EE" : "#0891B2";
   const gridOpacity = isDark ? 0.03 : 0.02;
-  const interpolationMethods = ["lagrange", "newton-divided", "cubic-spline"];
-  const showMathInput = !interpolationMethods.includes(selectedMethod);
+  // El editor de ecuación solo aplica a métodos que realmente reciben una ecuación f(x)
+  const equationMethods = [
+    "newton",
+    "bisection",
+    "fixed-point",
+    // EDO
+    "euler",
+    "rk2",
+    "rk4",
+    "verlet",
+    "verlet-error",
+    "euler-order",
+  ];
+  const showMathInput = equationMethods.includes(selectedMethod);
 
   return (
     <div className={`min-h-screen ${bgPrimary} flex overflow-hidden relative`}>

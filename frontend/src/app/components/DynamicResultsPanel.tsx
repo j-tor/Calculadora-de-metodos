@@ -32,6 +32,7 @@ export interface CalculationResponse {
   errors?: number[];
   converged?: boolean;
   x_eval?: number;
+  tolerance?: number;
 }
 
 interface DynamicResultsPanelProps {
@@ -44,6 +45,7 @@ interface DynamicResultsPanelProps {
 
 const INTERPOLATION_METHODS = ["lagrange", "newton-divided", "cubic-spline"];
 const ROOT_METHODS = ["bisection", "newton", "fixed-point"];
+const MATRIX_SOLVER_METHODS = ["jacobi", "gauss-seidel"];
 
 const getDisplayResults = (method: string, data: CalculationResponse | null) => {
   if (!data) return [];
@@ -70,7 +72,17 @@ const getDisplayResults = (method: string, data: CalculationResponse | null) => 
     results.push({ label: "Iteraciones", value: data.iterations.toString(), icon: Hash, color: "blue" });
   }
 
-  if (data.error != null) {
+  if (MATRIX_SOLVER_METHODS.includes(method) && data.solution && data.solution.length > 0) {
+    const lines = data.solution.map((v, idx) => `x${idx + 1} = ${Number(v).toFixed(6)}`);
+    results.push({
+      label: "Solución x",
+      value: `x = [\n${lines.join("\n")}\n]`,
+      icon: Sigma,
+      color: "cyan",
+    });
+  }
+
+  if (data.error != null && !MATRIX_SOLVER_METHODS.includes(method)) {
     results.push({
       label: "Error Estimado",
       value: data.error.toExponential(4),
@@ -209,6 +221,11 @@ export function DynamicResultsPanel({
   const results = getDisplayResults(selectedMethod, apiResult);
   const isInterpolationMethod = INTERPOLATION_METHODS.includes(selectedMethod);
   const isRootMethod = ROOT_METHODS.includes(selectedMethod);
+  const matrixSolverConverged =
+    MATRIX_SOLVER_METHODS.includes(selectedMethod) &&
+    (apiResult?.converged ?? apiResult?.converges) != null
+      ? (apiResult?.converged ?? apiResult?.converges)
+      : null;
   const iterations = apiResult.x_values ? apiResult.x_values.map((xi, idx) => ({
     iteration: idx,
     xi: xi,
@@ -272,7 +289,7 @@ export function DynamicResultsPanel({
               </div>
               <div
                 className={`text-xl md:text-2xl font-semibold ${textPrimary}`}
-                style={{ fontFamily: "JetBrains Mono, monospace" }}
+                style={{ fontFamily: "JetBrains Mono, monospace", whiteSpace: "pre-line" }}
               >
                 {result.value}
               </div>
@@ -280,6 +297,34 @@ export function DynamicResultsPanel({
           );
         })}
       </div>
+
+      {matrixSolverConverged !== null && (
+        <div
+          className={`rounded-xl border p-4 ${
+            matrixSolverConverged
+              ? isDark
+                ? "bg-green-500/10 border-green-500/30"
+                : "bg-green-50 border-green-200"
+              : isDark
+                ? "bg-blue-500/10 border-blue-500/30"
+                : "bg-blue-50 border-blue-200"
+          }`}
+        >
+          {matrixSolverConverged ? (
+            <div className={`text-sm md:text-base ${textPrimary}`}>
+              Convergencia lograda.
+            </div>
+          ) : (
+            <div className={`text-sm md:text-base ${textPrimary}`}>
+              La matriz puede no ser diagonalmente dominante. Verifique que{" "}
+              <span style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                |a_ii| &gt; Σ|a_ij|
+              </span>{" "}
+              para cada fila.
+            </div>
+          )}
+        </div>
+      )}
 
       {isInterpolationMethod && (
         <>

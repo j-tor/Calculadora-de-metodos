@@ -310,14 +310,28 @@ def analyze_and_calculate(
         elif "jacobi" in requested_method:
             if matrix_a is None or vector_b is None:
                 raise ValueError("Se requieren matrix_a y vector_b para Jacobi.")
-            sol, iters, converged = jacobi_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
-            return {"method": "Jacobi", "solution": sol, "iterations": iters, "converged": converged}
+            sol, iters, converged, errors = jacobi_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
+            return {
+                "method": "Jacobi",
+                "solution": sol,
+                "iterations": iters,
+                "converged": converged,
+                "error": errors,  # controlador -> errors + error(ultimo)
+                "tolerance": tol,
+            }
 
         elif "gauss-seidel" in requested_method or "seidel" in requested_method:
             if matrix_a is None or vector_b is None:
                 raise ValueError("Se requieren matrix_a y vector_b para Gauss-Seidel.")
-            sol, iters, converged = gauss_seidel_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
-            return {"method": "Gauss-Seidel", "solution": sol, "iterations": iters, "converged": converged}
+            sol, iters, converged, errors = gauss_seidel_method(matrix_a, vector_b, tol=tol, max_iter=max_iter)
+            return {
+                "method": "Gauss-Seidel",
+                "solution": sol,
+                "iterations": iters,
+                "converged": converged,
+                "error": errors,  # controlador -> errors + error(ultimo)
+                "tolerance": tol,
+            }
 
         elif "euler-order" in requested_method or ("euler" in requested_method and ("orden" in requested_method or "order" in requested_method)):
             return {"method": "Orden del MÃ©todo de Euler", "order": 1, "local_order": 2}
