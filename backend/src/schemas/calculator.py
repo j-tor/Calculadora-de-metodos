@@ -69,4 +69,5 @@ class CalculationResponse(BaseModel):
     order: Optional[int] = None
     local_order: Optional[int] = None
     error: Optional[float] = None
+    errors: Optional[List[float]] = None
     converged: Optional[bool] = None

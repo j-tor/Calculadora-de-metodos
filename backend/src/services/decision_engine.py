@@ -94,7 +94,18 @@ def analyze_and_calculate(
             res, iters, history = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
             x_vals = [h["x"] for h in history]
             y_vals = [h["y"] for h in history]
-            return {"method": "Bisección", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
+            errors = [h["error"] for h in history]
+            return {
+                "method": "Bisección",
+                "result": res,
+                "iterations": iters,
+                "expression": expr,
+                "symbol": x,
+                "x_values": x_vals,
+                "y_values": y_vals,
+                "error": errors
+            }
+
         
         elif "newton" in requested_method and "interpol" not in requested_method:
             if equation_str is None:

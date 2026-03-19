@@ -11,6 +11,7 @@ import { VoiceCommandDialog } from "./components/VoiceCommandDialog";
 function AppContent() {
   const [selectedMethod, setSelectedMethod] = useState("newton");
   const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
+  const [resultMethod,setResultMethod] = useState("");
   const [hasResults, setHasResults] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [mathInput, setMathInput] = useState("");
@@ -63,7 +64,7 @@ function AppContent() {
       }
 
       const data = await response.json();
-
+      setResultMethod(selectedMethod);
       setApiResult(data);
       setHasResults(true);
     } catch (error: any) {
@@ -209,7 +210,7 @@ function AppContent() {
               </div>
 
               <div>
-                <GraphPanel hasResults={hasResults} apiResult={apiResult} />
+                <GraphPanel selectedMethod={resultMethod} hasResults={hasResults} apiResult={apiResult} />
               </div>
             </div>
           </div>

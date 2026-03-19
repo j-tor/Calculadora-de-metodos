@@ -8,9 +8,10 @@ import { CalculationResponse } from '../api/calculator';
 interface GraphPanelProps {
   hasResults: boolean;
   apiResult: CalculationResponse | null;
+  selectedMethod: string;
 }
 
-export function GraphPanel({ hasResults, apiResult }: GraphPanelProps) {
+export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanelProps) {
   const [showGraph, setShowGraph] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -71,55 +72,61 @@ export function GraphPanel({ hasResults, apiResult }: GraphPanelProps) {
 
       {showGraph && (
         <div className="p-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${
+            selectedMethod !== "bisection" 
+              ? "grid-cols-1 lg:grid-cols-2" 
+              : "grid-cols-1"
+          }`}>
             {/* Function Plot */}
-            <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
-              <h4 className={`text-sm font-semibold ${textTertiary} mb-3`}>Gráfica de la Función</h4>
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={functionData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#3B82F6" />
-                      <stop offset="100%" stopColor={isDark ? "#22D3EE" : "#0891B2"} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-                  <XAxis
-                    dataKey="x"
-                    stroke={axisColor}
-                    tick={{ fill: axisColor, fontSize: 12 }}
-                    axisLine={{ stroke: gridColor }}
-                  />
-                  <YAxis
-                    stroke={axisColor}
-                    tick={{ fill: axisColor, fontSize: 12 }}
-                    axisLine={{ stroke: gridColor }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: tooltipBg,
-                      border: `1px solid ${tooltipBorder}`,
-                      borderRadius: '8px',
-                      color: tooltipText,
-                      fontFamily: 'JetBrains Mono, monospace',
-                    }}
-                    labelStyle={{ color: tooltipText }}
-                  />
-                  <ReferenceLine y={0} stroke={axisColor} strokeDasharray="3 3" />
-                  {rootValue !== null && (
-                     <ReferenceLine x={rootValue} stroke={isDark ? "#22D3EE" : "#0891B2"} strokeDasharray="5 5" label={{ value: 'Raíz', fill: isDark ? "#22D3EE" : "#0891B2", fontSize: 12 }} />
-                  )}
-                  <Line
-                    type="monotone"
-                    dataKey="y"
-                    stroke="url(#lineGradient)"
-                    strokeWidth={3}
-                    dot={false}
-                    activeDot={{ r: 6, fill: '#3B82F6' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {selectedMethod !== "bisection" && (
+              <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
+                <h4 className={`text-sm font-semibold ${textTertiary} mb-3`}>Gráfica de la Función</h4>
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={functionData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#3B82F6" />
+                        <stop offset="100%" stopColor={isDark ? "#22D3EE" : "#0891B2"} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
+                    <XAxis
+                      dataKey="x"
+                      stroke={axisColor}
+                      tick={{ fill: axisColor, fontSize: 12 }}
+                      axisLine={{ stroke: gridColor }}
+                    />
+                    <YAxis
+                      stroke={axisColor}
+                      tick={{ fill: axisColor, fontSize: 12 }}
+                      axisLine={{ stroke: gridColor }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: tooltipBg,
+                        border: `1px solid ${tooltipBorder}`,
+                        borderRadius: '8px',
+                        color: tooltipText,
+                        fontFamily: 'JetBrains Mono, monospace',
+                      }}
+                      labelStyle={{ color: tooltipText }}
+                    />
+                    <ReferenceLine y={0} stroke={axisColor} strokeDasharray="3 3" />
+                    {rootValue !== null && (
+                       <ReferenceLine x={rootValue} stroke={isDark ? "#22D3EE" : "#0891B2"} strokeDasharray="5 5" label={{ value: 'Raíz', fill: isDark ? "#22D3EE" : "#0891B2", fontSize: 12 }} />
+                    )}
+                    <Line
+                      type="monotone"
+                      dataKey="y"
+                      stroke="url(#lineGradient)"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6, fill: '#3B82F6' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
             {/* Iteration Points Visualization */}
             <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>

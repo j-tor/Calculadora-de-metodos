@@ -25,9 +25,8 @@ def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int)
         iterations += 1
         c = (a + b) / 2
         fc = f(c)
-        
-        history.append({"x": float(c), "y": float(fc), "iteration": iterations})
-        
+        error = (b - a) / 2
+        history.append({"x": float(c), "y": float(fc), "iteration": iterations, "error": error})
         if fc == 0:
             break
         if f(a) * fc < 0:

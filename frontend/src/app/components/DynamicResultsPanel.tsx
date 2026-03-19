@@ -37,6 +37,7 @@ export interface CalculationResponse {
   order?: number;
   local_order?: number;
   error?: number;
+  errors?: number[];
   converged?: boolean;
 }
 
@@ -176,7 +177,7 @@ export function DynamicResultsPanel({
     iteration: idx,
     xi: xi,
     fxi: apiResult.y_values ? apiResult.y_values[idx] : 0,
-    error: 0 // In real app, we'd need error per iteration
+    error: apiResult?.errors?.[idx] ?? 0,
   })) : [];
 
   return (

@@ -84,7 +84,6 @@ async def calculate_root_controller(request: CalculationRequest):
                 "c": _tolist(c),
                 "d": _tolist(d),
             }
-
         return CalculationResponse(
             method_used=results.get("method", ""),
             result=results.get("result"),
@@ -106,7 +105,8 @@ async def calculate_root_controller(request: CalculationRequest):
             v_values=_tolist(results.get("v_values")),
             order=results.get("order"),
             local_order=results.get("local_order"),
-            error=results.get("error"),
+            errors=results.get("error"),
+            error=results.get("error")[-1],
             converged=results.get("converged"),
         )
 
