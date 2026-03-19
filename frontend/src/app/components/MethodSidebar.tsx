@@ -69,6 +69,7 @@ const methodCategories = [
     methods: [
       { id: "lagrange", name: "Interpolacion de Lagrange" },
       { id: "newton-divided", name: "Interpolacion de Newton" },
+      { id: "cubic-spline", name: "Trazador Cúbico" },
     ],
   },
 ];
