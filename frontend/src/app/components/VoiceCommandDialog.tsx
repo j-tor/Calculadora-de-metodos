@@ -195,11 +195,6 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
   }, [isOpen]);
 
   const stopAll = () => {
-    // Invalidate any pending callbacks from speech/recording
-    flowIdRef.current += 1;
-    recordingIdRef.current += 1;
-    speechIdRef.current += 1;
-
     stopRecording();
     window.speechSynthesis.cancel();
     if (retryTimerRef.current != null) {
