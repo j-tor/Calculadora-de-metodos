@@ -127,6 +127,8 @@ function AppContent() {
   const gridColor = isDark ? "#3B82F6" : "#CBD5E1";
   const dotColor = isDark ? "#22D3EE" : "#0891B2";
   const gridOpacity = isDark ? 0.03 : 0.02;
+  const interpolationMethods = ["lagrange", "newton-divided", "cubic-spline"];
+  const showMathInput = !interpolationMethods.includes(selectedMethod);
 
   return (
     <div className={`min-h-screen ${bgPrimary} flex overflow-hidden relative`}>
@@ -185,15 +187,17 @@ function AppContent() {
           <div className="flex-1 overflow-auto p-3 md:p-6">
             <div className="max-w-[2000px] mx-auto space-y-4 md:space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-                <div className="lg:col-span-8">
-                  <MathInputPanel
-                    selectedMethod={selectedMethod}
-                    value={mathInput}
-                    onChange={setMathInput}
-                  />
-                </div>
+                {showMathInput && (
+                  <div className="lg:col-span-8">
+                    <MathInputPanel
+                      selectedMethod={selectedMethod}
+                      value={mathInput}
+                      onChange={setMathInput}
+                    />
+                  </div>
+                )}
 
-                <div className="lg:col-span-4">
+                <div className={showMathInput ? "lg:col-span-4" : "lg:col-span-12"}>
                   <ParametersPanel
                     selectedMethod={selectedMethod}
                     onCalculate={handleCalculate}

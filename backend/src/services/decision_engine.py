@@ -1,3 +1,4 @@
+import numpy as np
 import sympy as sp
 from typing import Tuple, Dict, Any, Sequence
 from .methods import (
@@ -92,9 +93,9 @@ def analyze_and_calculate(
             if x_start is None or x_end is None:
                 raise ValueError("El método de Bisección requiere un intervalo (x_start, x_end).")
             res, iters, history = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
-            x_vals = [h["x"] for h in history]
-            y_vals = [h["y"] for h in history]
-            errors = [h["error"] for h in history]
+            x_vals = [step["x"] for step in history]
+            y_vals = [step["y"] for step in history]
+            errors = [step["error"] for step in history]
             return {
                 "method": "Bisección",
                 "result": res,
@@ -107,15 +108,24 @@ def analyze_and_calculate(
             }
 
         
+        elif "newton-divided" in requested_method or ("newton" in requested_method and "interpol" in requested_method):
+            if x_values is None or y_values is None:
+                raise ValueError("Se requieren x_values y y_values para Interpolación de Newton.")
+            coef = newton_divided_differences(x_values, y_values)
+            value = None
+            if x_eval is not None:
+                value = newton_interpolation_eval(x_values, coef, x_eval)
+            return {"method": "Interpolación de Newton", "coefficients": coef, "value": value, "x_eval": x_eval}
+
         elif "newton" in requested_method and "interpol" not in requested_method:
             if equation_str is None:
                 raise ValueError("Se requiere equation_str para Newton-Raphson.")
             expr = _parse_expr(equation_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
             res, iters, history = newton_raphson_method(expr, x, start_point, tol, max_iter)
-            x_vals = [h["x"] for h in history]
-            y_vals = [h["y"] for h in history]
-            error = [h["error"] for h in history]
+            x_vals = [step["x"] for step in history]
+            y_vals = [step["y"] for step in history]
+            error = [step["error"] for step in history]
             return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals, "error":error}
 
         elif "punto fijo" in requested_method or "fixed" in requested_method:
@@ -125,9 +135,9 @@ def analyze_and_calculate(
             g_expr = _parse_expr(expr_str)
             start_point = initial_guess if initial_guess is not None else (x_start + x_end) / 2 if (x_start is not None and x_end is not None) else 0.0
             res, iters, history = fixed_point_method(g_expr, x, start_point, tol, max_iter)
-            x_vals = [h["x"] for h in history]
-            y_vals = [h["y"] for h in history]
-            error = [h["error"] for h in history]
+            x_vals = [step["x"] for step in history]
+            y_vals = [step["y"] for step in history]
+            error = [step["error"] for step in history]
             return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x, "x_values": x_vals, "y_values": y_vals, "error": error}
 
         elif "convergenciafija" in requested_method or "convergencia fija" in requested_method or "convergence" in requested_method:
@@ -156,15 +166,6 @@ def analyze_and_calculate(
             if x_eval is not None:
                 value = polynomial_interpolation_eval(coeffs, x_eval)
             return {"method": "Interpolación Polinómica", "coefficients": coeffs, "value": value, "x_eval": x_eval}
-
-        elif "newton-divided" in requested_method or ("newton" in requested_method and "interpol" in requested_method):
-            if x_values is None or y_values is None:
-                raise ValueError("Se requieren x_values y y_values para Interpolación de Newton.")
-            coef = newton_divided_differences(x_values, y_values)
-            value = None
-            if x_eval is not None:
-                value = newton_interpolation_eval(x_values, coef, x_eval)
-            return {"method": "Interpolación de Newton", "coefficients": coef, "value": value, "x_eval": x_eval}
 
         elif "trazos" in requested_method or "spline" in requested_method or "cubicos" in requested_method:
             if x_values is None or y_values is None:
@@ -346,8 +347,8 @@ def analyze_and_calculate(
             if f_a * f_b < 0:
                 # Bisection is reliable if sign changes
                 res, iters, history = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
-                x_vals = [h["x"] for h in history]
-                y_vals = [h["y"] for h in history]
+                x_vals = [step["x"] for step in history]
+                y_vals = [step["y"] for step in history]
                 return {
                     "method": "Bisección",
                     "result": res,
@@ -365,8 +366,8 @@ def analyze_and_calculate(
     
     try:
         res, iters, history = newton_raphson_method(expr, x, start_point, tol, max_iter)
-        x_vals = [h["x"] for h in history]
-        y_vals = [h["y"] for h in history]
+        x_vals = [step["x"] for step in history]
+        y_vals = [step["y"] for step in history]
         return {
             "method": "Newton-Raphson",
             "result": res,

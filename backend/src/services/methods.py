@@ -148,9 +148,11 @@ def newton_divided_differences(x_vals: Sequence[float], y_vals: Sequence[float])
 
 def newton_interpolation_eval(x_vals: Sequence[float], coef: Sequence[float], x: float) -> float:
     n = len(coef)
-    result = coef[n - 1]
-    for k in range(n - 2, -1, -1):
-        result = result * (x - x_vals[k]) + coef[k]
+    result = coef[0]
+    product = 1.0
+    for k in range(1, n):
+        product *= (x - x_vals[k - 1])
+        result += coef[k] * product
     return float(result)
 
 def cubic_spline_coeffs(x_vals: Sequence[float], y_vals: Sequence[float]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

@@ -1,4 +1,3 @@
-import { SquareRoot, Pi, Infinity } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 interface MathKeyboardProps {
@@ -11,15 +10,11 @@ const mathButtons = [
   { label: "xⁿ", value: "**", type: "operator" },
   { label: "π", value: "pi", type: "constant" },
   { label: "e", value: "e", type: "constant" },
-  { label: "∫", value: "int()", type: "function" },
   { label: "log", value: "log()", type: "function" },
   { label: "ln", value: "ln()", type: "function" },
   { label: "sin", value: "sin()", type: "function" },
   { label: "cos", value: "cos()", type: "function" },
   { label: "tan", value: "tan()", type: "function" },
-  { label: "lim", value: "lim", type: "function" },
-  { label: "Σ", value: "sum()", type: "function" },
-  { label: "∞", value: "infinity", type: "constant" },
   { label: "/", value: "/", type: "operator" },
   { label: "()", value: "()", type: "operator" },
 ];
