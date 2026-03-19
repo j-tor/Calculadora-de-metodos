@@ -1,9 +1,10 @@
-import { Settings, Play } from 'lucide-react';
+import { Settings, Play, Mic } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface ParametersPanelProps {
   selectedMethod: string;
   onCalculate: () => void;
+  onVoiceCommand?: () => void;
   values: Record<string, string>;
   onValueChange: (name: string, value: string) => void;
 }
@@ -60,7 +61,7 @@ export const methodParameters: Record<string, Array<{ name: string; label: strin
   ],
 };
 
-export function ParametersPanel({ selectedMethod, onCalculate, values, onValueChange }: ParametersPanelProps) {
+export function ParametersPanel({ selectedMethod, onCalculate, onVoiceCommand, values, onValueChange }: ParametersPanelProps) {
   const parameters = methodParameters[selectedMethod] || methodParameters['newton'];
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -109,14 +110,25 @@ export function ParametersPanel({ selectedMethod, onCalculate, values, onValueCh
           </div>
         ))}
 
-        {/* Calculate Button */}
-        <button
-          onClick={onCalculate}
-          className="w-full mt-6 bg-gradient-to-r from-[#3B82F6] to-[#2563EB] hover:from-[#2563EB] hover:to-[#1D4ED8] text-white font-semibold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#3B82F6]/30 flex items-center justify-center gap-3 group"
-        >
-          <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          Calcular Solución
-        </button>
+        {/* Calculate and Voice Buttons */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onCalculate}
+            className="flex-1 bg-gradient-to-r from-[#3B82F6] to-[#2563EB] hover:from-[#2563EB] hover:to-[#1D4ED8] text-white font-semibold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#3B82F6]/30 flex items-center justify-center gap-3 group"
+          >
+            <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            Calcular Solución
+          </button>
+          {onVoiceCommand && (
+            <button
+              onClick={onVoiceCommand}
+              className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] text-white font-semibold py-4 px-5 rounded-xl transition-all shadow-lg shadow-[#8B5CF6]/30 flex items-center justify-center gap-2 group min-w-[60px]"
+              title="Comando de Voz"
+            >
+              <Mic className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

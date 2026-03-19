@@ -4,18 +4,24 @@ from typing import Tuple, Callable, Sequence, List, Dict
 
 def _validate_uniform_steps(x0: float, x_end: float, h: float) -> int:
     if h == 0:
-        raise ValueError("El tamaÃ±o de paso h no puede ser 0.")
+        raise ValueError("El tamaño de paso h no puede ser cero. Intente con un valor como 0.1 o 0.01.")
     steps_float = (x_end - x0) / h
     steps_rounded = int(round(steps_float))
     if abs(steps_float - steps_rounded) > 1e-10:
-        raise ValueError("El intervalo no es mÃºltiplo exacto del paso h.")
+        raise ValueError(f"El intervalo desde {x0} hasta {x_end} no se divide exactamente en pasos de tamaño {h}. "
+                        f"Ajuste h para que ({x_end} - {x0}) / {h} sea un número entero.")
     if steps_rounded < 0:
-        raise ValueError("El paso h debe avanzar hacia x_end.")
+        raise ValueError(f"El paso h ({h}) tiene signo incorrecto. Use un valor positivo si va de {x0} a {x_end}, "
+                        f"o negativo si va en sentido contrario.")
     return steps_rounded
 
 def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
     if f(a) * f(b) >= 0:
-        raise ValueError("El intervalo no cambia de signo (f(a)*f(b) >= 0).")
+        raise ValueError(
+            f"El intervalo [{a}, {b}] no cambia de signo. f({a}) = {f(a):.4f} y f({b}) = {f(b):.4f}. "
+            "El método de bisección requiere que f(a) y f(b) tengan signos opuestos. "
+            "Intente ampliar el intervalo o verifique que la función cruce el eje x en este rango."
+        )
     
     iterations = 0
     c = a
@@ -53,7 +59,10 @@ def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: flo
         history.append({"x": float(x_n), "y": float(fx), "iteration": iterations, "error": error})
         
         if abs(dfx) < 1e-12:
-            raise ValueError("Derivada cercana a cero. El método de Newton-Raphson falló.")
+            raise ValueError(
+                "La derivada es casi cero en este punto, lo que hace que el método de Newton-Raphson no pueda continuar. "
+                "Intente con un valor inicial diferente, más cercano a donde la función cambia de pendiente."
+            )
             
         x_next = x_n - fx / dfx
         error = abs(float(x_next) - float(x_n))
@@ -89,12 +98,14 @@ def fixed_point_convergence(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float = None,
         vals = np.abs(g_prime_f(xs))
         return bool(np.nanmax(vals) < 1.0)
     if x0 is None:
-        raise ValueError("x0 requerido si no se da intervalo.")
+        raise ValueError("Se requiere un valor inicial x0 para verificar la convergencia. "
+                        "Proporcione el punto donde desea evaluar la convergencia.")
     return abs(float(g_prime_f(x0))) < 1.0
 
 def lagrange_interpolation(x_vals: Sequence[float], y_vals: Sequence[float], x: float) -> float:
     if len(x_vals) != len(y_vals):
-        raise ValueError("x_vals y y_vals deben tener la misma longitud.")
+        raise ValueError(f"Los datos de entrada no coinciden: tiene {len(x_vals)} valores x pero {len(y_vals)} valores y. "
+                        "Asegúrese de proporcionar la misma cantidad de puntos x e y.")
     n = len(x_vals)
     total = 0.0
     for i in range(n):
@@ -103,7 +114,8 @@ def lagrange_interpolation(x_vals: Sequence[float], y_vals: Sequence[float], x: 
             if i != j:
                 denom = x_vals[i] - x_vals[j]
                 if denom == 0:
-                    raise ValueError("Valores x repetidos.")
+                    raise ValueError(f"Los valores x deben ser únicos. Se encontró duplicado: x[{i}] = x[{j}] = {x_vals[i]}. "
+                                    "Verifique que no haya puntos repetidos en sus datos.")
                 term *= (x - x_vals[j]) / denom
         total += term
     return float(total)
@@ -111,7 +123,8 @@ def lagrange_interpolation(x_vals: Sequence[float], y_vals: Sequence[float], x: 
 def lagrange_polynomial(x_vals: Sequence[float], y_vals: Sequence[float]) -> sp.Expr:
     x = sp.symbols("x")
     if len(x_vals) != len(y_vals):
-        raise ValueError("x_vals y y_vals deben tener la misma longitud.")
+        raise ValueError(f"Los datos de entrada no coinciden: tiene {len(x_vals)} valores x pero {len(y_vals)} valores y. "
+                        "Asegúrese de proporcionar la misma cantidad de puntos x e y.")
     n = len(x_vals)
     poly = 0
     for i in range(n):
@@ -120,14 +133,16 @@ def lagrange_polynomial(x_vals: Sequence[float], y_vals: Sequence[float]) -> sp.
             if i != j:
                 denom = x_vals[i] - x_vals[j]
                 if denom == 0:
-                    raise ValueError("Valores x repetidos.")
+                    raise ValueError(f"Los valores x deben ser únicos. Se encontró duplicado: x[{i}] = x[{j}] = {x_vals[i]}. "
+                                    "Verifique que no haya puntos repetidos en sus datos.")
                 term *= (x - x_vals[j]) / denom
         poly += term
     return sp.simplify(poly)
 
 def polynomial_interpolation_coeffs(x_vals: Sequence[float], y_vals: Sequence[float]) -> np.ndarray:
     if len(x_vals) != len(y_vals):
-        raise ValueError("x_vals y y_vals deben tener la misma longitud.")
+        raise ValueError(f"Los datos de entrada no coinciden: tiene {len(x_vals)} valores x pero {len(y_vals)} valores y. "
+                        "Asegúrese de proporcionar la misma cantidad de puntos x e y.")
     n = len(x_vals)
     vander = np.vander(np.array(x_vals, dtype=float), N=n, increasing=False)
     coeffs = np.linalg.solve(vander, np.array(y_vals, dtype=float))
@@ -138,7 +153,8 @@ def polynomial_interpolation_eval(coeffs: Sequence[float], x: float) -> float:
 
 def newton_divided_differences(x_vals: Sequence[float], y_vals: Sequence[float]) -> np.ndarray:
     if len(x_vals) != len(y_vals):
-        raise ValueError("x_vals y y_vals deben tener la misma longitud.")
+        raise ValueError(f"Los datos de entrada no coinciden: tiene {len(x_vals)} valores x pero {len(y_vals)} valores y. "
+                        "Asegúrese de proporcionar la misma cantidad de puntos x e y.")
     n = len(x_vals)
     coef = np.array(y_vals, dtype=float).copy()
     x_vals = np.array(x_vals, dtype=float)
@@ -157,15 +173,19 @@ def newton_interpolation_eval(x_vals: Sequence[float], coef: Sequence[float], x:
 
 def cubic_spline_coeffs(x_vals: Sequence[float], y_vals: Sequence[float]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if len(x_vals) != len(y_vals):
-        raise ValueError("x_vals y y_vals deben tener la misma longitud.")
+        raise ValueError(f"Los datos de entrada no coinciden: tiene {len(x_vals)} valores x pero {len(y_vals)} valores y. "
+                        "Asegúrese de proporcionar la misma cantidad de puntos x e y.")
     n = len(x_vals)
     if n < 2:
-        raise ValueError("Se requieren al menos dos puntos.")
+        raise ValueError("Se requieren al menos dos puntos para calcular el trazador cúbico. "
+                        "Proporcione mínimo dos pares de valores (x, y).")
     x = np.array(x_vals, dtype=float)
     y = np.array(y_vals, dtype=float)
     h = np.diff(x)
     if np.any(h == 0):
-        raise ValueError("Valores x repetidos.")
+        duplicated_indices = np.where(h == 0)[0]
+        raise ValueError(f"Los valores x deben ser únicos. Se encontró duplicado cerca del índice {duplicated_indices[0]}. "
+                        "Verifique que no haya puntos repetidos en sus datos.")
     alpha = np.zeros(n)
     for i in range(1, n - 1):
         alpha[i] = (3 / h[i]) * (y[i + 1] - y[i]) - (3 / h[i - 1]) * (y[i] - y[i - 1])
@@ -192,7 +212,8 @@ def cubic_spline_eval(x_vals: Sequence[float], coeffs: Tuple[np.ndarray, np.ndar
     a, b, c, d = coeffs
     xs = np.array(x_vals, dtype=float)
     if x < xs[0] or x > xs[-1]:
-        raise ValueError("x fuera del rango de interpolacion.")
+        raise ValueError(f"El valor x = {x} está fuera del rango de interpolación [{xs[0]}, {xs[-1]}]. "
+                        "El trazador cúbico solo puede evaluarse dentro del rango de los puntos dados.")
     i = np.searchsorted(xs, x) - 1
     i = max(0, min(i, len(a) - 1))
     dx = x - xs[i]
@@ -205,7 +226,9 @@ def solve_upper_triangular(U: Sequence[Sequence[float]], b: Sequence[float]) -> 
     x = np.zeros(n)
     for i in range(n - 1, -1, -1):
         if abs(U[i, i]) < 1e-12:
-            raise ValueError("Cero en la diagonal.")
+            raise ValueError(f"La matriz tiene un cero en la diagonal (U[{i},{i}] ≈ 0). "
+                            "El sistema no tiene solución única o la matriz es singular. "
+                            "Verifique que la matriz sea triangular superior válida.")
         x[i] = (b[i] - np.dot(U[i, i + 1:], x[i + 1:])) / U[i, i]
     return x
 
@@ -216,7 +239,9 @@ def solve_lower_triangular(L: Sequence[Sequence[float]], b: Sequence[float]) -> 
     x = np.zeros(n)
     for i in range(n):
         if abs(L[i, i]) < 1e-12:
-            raise ValueError("Cero en la diagonal.")
+            raise ValueError(f"La matriz tiene un cero en la diagonal (L[{i},{i}] ≈ 0). "
+                            "El sistema no tiene solución única o la matriz es singular. "
+                            "Verifique que la matriz sea triangular inferior válida.")
         x[i] = (b[i] - np.dot(L[i, :i], x[:i])) / L[i, i]
     return x
 
@@ -224,8 +249,10 @@ def solve_diagonal(D: Sequence[Sequence[float]], b: Sequence[float]) -> np.ndarr
     D = np.array(D, dtype=float)
     b = np.array(b, dtype=float)
     diag = np.diag(D)
-    if np.any(np.abs(diag) < 1e-12):
-        raise ValueError("Cero en la diagonal.")
+    zero_indices = np.where(np.abs(diag) < 1e-12)[0]
+    if len(zero_indices) > 0:
+        raise ValueError(f"La matriz diagonal tiene ceros en la posición {zero_indices[0]} (D[{zero_indices[0]},{zero_indices[0]}] ≈ 0). "
+                        "El sistema no tiene solución única. Verifique que todos los elementos de la diagonal sean distintos de cero.")
     return b / diag
 
 def lu_doolittle(A: Sequence[Sequence[float]]) -> Tuple[np.ndarray, np.ndarray]:
@@ -239,7 +266,9 @@ def lu_doolittle(A: Sequence[Sequence[float]]) -> Tuple[np.ndarray, np.ndarray]:
             U[i, j] = A[i, j] - np.dot(L[i, :i], U[:i, j])
         for j in range(i + 1, n):
             if abs(U[i, i]) < 1e-12:
-                raise ValueError("Cero en la diagonal de U.")
+                raise ValueError(f"No se puede completar la descomposición LU: U[{i},{i}] es casi cero. "
+                                "La matriz puede ser singular o requerir pivoteo. "
+                                "Intente con otra matriz o use una variante diferente de LU.")
             L[j, i] = (A[j, i] - np.dot(L[j, :i], U[:i, i])) / U[i, i]
     return L, U
 
@@ -253,7 +282,9 @@ def lu_crout(A: Sequence[Sequence[float]]) -> Tuple[np.ndarray, np.ndarray]:
             L[i, j] = A[i, j] - np.dot(L[i, :j], U[:j, j])
         for i in range(j + 1, n):
             if abs(L[j, j]) < 1e-12:
-                raise ValueError("Cero en la diagonal de L.")
+                raise ValueError(f"No se puede completar la descomposición LU: L[{j},{j}] es casi cero. "
+                                "La matriz puede ser singular o requerir pivoteo. "
+                                "Intente con otra matriz o use la variante Doolittle.")
             U[j, i] = (A[j, i] - np.dot(L[j, :j], U[:j, i])) / L[j, j]
     return L, U
 
@@ -273,7 +304,8 @@ def jacobian_evaluate(funcs: Sequence[sp.Expr], vars: Sequence[sp.Symbol], value
 
 def trapezoidal_rule(f: Callable, a: float, b: float, n: int) -> float:
     if n is None or n <= 0:
-        raise ValueError("n debe ser un entero positivo.")
+        raise ValueError(f"El número de subintervalos n debe ser positivo, pero recibió n = {n}. "
+                        "Intente con un valor entero mayor que cero, como 10 o 100.")
     h = (b - a) / n
     xs = np.linspace(a, b, n + 1)
     ys = f(xs)
@@ -281,9 +313,11 @@ def trapezoidal_rule(f: Callable, a: float, b: float, n: int) -> float:
 
 def simpson_one_third_rule(f: Callable, a: float, b: float, n: int) -> float:
     if n is None or n <= 0:
-        raise ValueError("n debe ser un entero positivo.")
+        raise ValueError(f"El número de subintervalos n debe ser positivo, pero recibió n = {n}. "
+                        "Intente con un valor entero mayor que cero.")
     if n % 2 != 0:
-        raise ValueError("Simpson 1/3 requiere n par.")
+        raise ValueError(f"La regla de Simpson 1/3 requiere un número par de subintervalos, pero recibió n = {n}. "
+                        f"Intente con n = {n + 1} o cualquier número par como 10, 20, 100.")
     h = (b - a) / n
     xs = np.linspace(a, b, n + 1)
     ys = f(xs)
@@ -291,9 +325,11 @@ def simpson_one_third_rule(f: Callable, a: float, b: float, n: int) -> float:
 
 def simpson_three_eighths_rule(f: Callable, a: float, b: float, n: int) -> float:
     if n is None or n <= 0:
-        raise ValueError("n debe ser un entero positivo.")
+        raise ValueError(f"El número de subintervalos n debe ser positivo, pero recibió n = {n}. "
+                        "Intente con un valor entero mayor que cero.")
     if n % 3 != 0:
-        raise ValueError("Simpson 3/8 requiere n mÃºltiplo de 3.")
+        raise ValueError(f"La regla de Simpson 3/8 requiere que n sea múltiplo de 3, pero recibió n = {n}. "
+                        f"Intente con n = {n + (3 - n % 3) % 3} o cualquier múltiplo de 3 como 9, 12, 99.")
     h = (b - a) / n
     xs = np.linspace(a, b, n + 1)
     ys = f(xs)
@@ -313,11 +349,16 @@ def jacobi_method(
     b = np.array(b, dtype=float)
     n = A.shape[0]
     if A.shape[0] != A.shape[1]:
-        raise ValueError("La matriz A debe ser cuadrada.")
+        raise ValueError(f"La matriz A debe ser cuadrada (mismas filas y columnas), pero tiene {A.shape[0]} filas y {A.shape[1]} columnas. "
+                        "Asegúrese de que la matriz de coeficientes sea cuadrada.")
     if b.shape[0] != n:
-        raise ValueError("El vector b debe tener el mismo tamaÃ±o que A.")
-    if np.any(np.abs(np.diag(A)) < 1e-12):
-        raise ValueError("Cero en la diagonal.")
+        raise ValueError(f"El vector b debe tener {n} elementos (uno por cada fila de A), pero tiene {b.shape[0]}. "
+                        "Asegúrese de que b tenga la misma cantidad de elementos que filas en A.")
+    zero_diagonal = np.where(np.abs(np.diag(A)) < 1e-12)[0]
+    if len(zero_diagonal) > 0:
+        raise ValueError(f"La matriz tiene ceros en la diagonal en la posición {zero_diagonal[0]} (A[{zero_diagonal[0]},{zero_diagonal[0]}] ≈ 0). "
+                        "El método de Jacobi requiere que todos los elementos de la diagonal sean distintos de cero. "
+                        "Intente reordenar las ecuaciones o usar otro método.")
     x = np.zeros(n) if x0 is None else np.array(x0, dtype=float)
     D = np.diag(A)
     R = A - np.diagflat(D)
@@ -342,11 +383,16 @@ def gauss_seidel_method(
     b = np.array(b, dtype=float)
     n = A.shape[0]
     if A.shape[0] != A.shape[1]:
-        raise ValueError("La matriz A debe ser cuadrada.")
+        raise ValueError(f"La matriz A debe ser cuadrada (mismas filas y columnas), pero tiene {A.shape[0]} filas y {A.shape[1]} columnas. "
+                        "Asegúrese de que la matriz de coeficientes sea cuadrada.")
     if b.shape[0] != n:
-        raise ValueError("El vector b debe tener el mismo tamaÃ±o que A.")
-    if np.any(np.abs(np.diag(A)) < 1e-12):
-        raise ValueError("Cero en la diagonal.")
+        raise ValueError(f"El vector b debe tener {n} elementos (uno por cada fila de A), pero tiene {b.shape[0]}. "
+                        "Asegúrese de que b tenga la misma cantidad de elementos que filas en A.")
+    zero_diagonal = np.where(np.abs(np.diag(A)) < 1e-12)[0]
+    if len(zero_diagonal) > 0:
+        raise ValueError(f"La matriz tiene ceros en la diagonal en la posición {zero_diagonal[0]} (A[{zero_diagonal[0]},{zero_diagonal[0]}] ≈ 0). "
+                        "El método de Gauss-Seidel requiere que todos los elementos de la diagonal sean distintos de cero. "
+                        "Intente reordenar las ecuaciones o usar otro método.")
     x = np.zeros(n) if x0 is None else np.array(x0, dtype=float)
     errors: List[float] = []
     for k in range(max_iter):

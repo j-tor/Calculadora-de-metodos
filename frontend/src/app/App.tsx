@@ -81,7 +81,8 @@ function AppContent() {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err?.detail || "Error en la solicitud");
+        const errorMessage = err?.detail || err?.message || "Error del servidor";
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -91,7 +92,8 @@ function AppContent() {
     } catch (error: any) {
       setApiResult(null);
       setHasResults(false);
-      setApiError(error?.message || "Error desconocido");
+      const userMessage = error?.message || "Ocurrió un error inesperado";
+      setApiError(userMessage);
     } finally {
       setIsLoading(false);
     }
@@ -213,6 +215,7 @@ function AppContent() {
                   <ParametersPanel
                     selectedMethod={selectedMethod}
                     onCalculate={handleCalculate}
+                    onVoiceCommand={handleVoiceCommand}
                     values={paramValues}
                     onValueChange={handleParamChange}
                   />

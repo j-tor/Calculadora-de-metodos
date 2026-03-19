@@ -9,9 +9,12 @@ router = APIRouter(prefix="/api/voice", tags=["Voice"])
 def get_groq_api_key():
     """Get Groq API key from environment"""
     api_key = os.getenv("GROQ_API_KEY")
-    #hola
     if not api_key:
-        raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="El servicio de voz no está configurado. La clave de API GROQ_API_KEY no está configurada en el servidor. "
+                  "Contacte al administrador para habilitar la funcionalidad de comandos de voz."
+        )
     return api_key
 
 
@@ -50,7 +53,30 @@ async def transcribe_voice(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+        error_msg = str(e)
+        if "rate limit" in error_msg.lower() or "quota" in error_msg.lower():
+            raise HTTPException(
+                status_code=429,
+                detail="El servicio de transcripción está temporalmente saturado. "
+                      "Por favor, espere unos segundos e intente de nuevo."
+            )
+        if "api key" in error_msg.lower() or "unauthorized" in error_msg.lower() or "authentication" in error_msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="Error de autenticación con el servicio de voz. "
+                      "Contacte al administrador para verificar la configuración de la API."
+            )
+        if "network" in error_msg.lower() or "connection" in error_msg.lower() or "timeout" in error_msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="No se pudo conectar con el servicio de transcripción. "
+                      "Verifique su conexión a internet e intente de nuevo."
+            )
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo transcribir el audio. Verifique que el archivo sea válido (formatos soportados: webm, wav, mp3) "
+                  "y que tenga buena calidad de audio. Error técnico: " + error_msg[:100]
+        )
 
 
 @router.get("/health")

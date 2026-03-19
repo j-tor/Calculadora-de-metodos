@@ -350,10 +350,10 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
           // Create audio blob
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           
-          if (audioBlob.size === 0) {
-            reject(new Error('No audio recorded'));
-            return;
-          }
+        if (audioBlob.size === 0) {
+          reject(new Error('No se grabó ningún audio. Por favor, asegúrese de permitir el acceso al micrófono e intente de nuevo.'));
+          return;
+        }
 
           try {
             // Send to backend
@@ -368,7 +368,8 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
 
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({}));
-              throw new Error(errorData.detail || `HTTP ${response.status}`);
+              const errorMsg = errorData.detail || errorData.message || `Error HTTP ${response.status}`;
+              throw new Error(errorMsg);
             }
 
             const data = await response.json();
@@ -382,12 +383,13 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
               throw new Error('Transcription failed');
             }
           } catch (error) {
-            reject(error);
+            const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
+            reject(new Error(`Error de transcripción: ${errorMsg}`));
           }
         };
 
         mediaRecorder.onerror = () => {
-          reject(new Error('MediaRecorder error'));
+          reject(new Error('Error al grabar audio. Verifique que su micrófono esté funcionando correctamente y que haya permitido el acceso.'));
         };
 
         // Start recording
@@ -401,7 +403,8 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
         }, 20000);
 
       } catch (error) {
-        reject(error);
+        const errorMsg = error instanceof Error ? error.message : 'Error de acceso al micrófono';
+        reject(new Error(`No se pudo acceder al micrófono: ${errorMsg}. Verifique los permisos de su navegador.`));
       }
     });
   };
@@ -842,12 +845,19 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
           <div className="mt-6 text-center h-12 flex items-center justify-center">
              <p className="text-[#CBD5E1] font-medium text-lg leading-snug">{message}</p>
           </div>
-          {isRecording && (
-            <div className="mt-2 flex items-center justify-center gap-2">
-              <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-red-300 text-xs font-semibold">Grabando voz...</span>
-            </div>
-          )}
+          <div className="mt-2 flex items-center justify-center gap-2">
+            {isRecording ? (
+              <>
+                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-red-300 text-xs font-semibold">Grabando voz...</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2.5 h-2.5 bg-[#64748B] rounded-full" />
+                <span className="text-[#64748B] text-xs font-semibold">No se está grabando</span>
+              </>
+            )}
+          </div>
 
           {(step === 'listening-method' || step === 'listening-equation' || step === 'listening-param') && (
             <div className="mt-4 flex gap-3">
