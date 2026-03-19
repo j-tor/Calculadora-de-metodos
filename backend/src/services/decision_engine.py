@@ -1,5 +1,6 @@
 import numpy as np
 import sympy as sp
+from sympy import symbols, log, exp, sin, cos, tan, sqrt, pi, E
 from typing import Tuple, Dict, Any, Sequence
 from .methods import (
     bisection_method,
@@ -69,7 +70,18 @@ def analyze_and_calculate(
         try:
             # Reemplazar '^' por '**' para que SymPy entienda la potenciación
             expr_str = expr_str.replace('^', '**')
-            expr = sp.parse_expr(expr_str)
+            local_dict = {
+                'log': log,
+                'ln': log,
+                'sqrt': sqrt,
+                'pi': pi,
+                'e': E,
+                'E': E,
+                'sin': sin,
+                'cos': cos,
+                'tan': tan,
+            }
+            expr = sp.parse_expr(expr_str, local_dict=local_dict)
             
             free_syms = expr.free_symbols
             unknown = [str(s) for s in free_syms if s not in valid_vars and str(s) not in ['e', 'pi', 'E', 'I']]

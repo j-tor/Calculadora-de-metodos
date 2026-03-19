@@ -1,6 +1,7 @@
 import { MathKeyboard } from "./MathKeyboard";
 import { Calculator, Sparkles } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useRef } from "react";
 
 interface MathInputPanelProps {
   selectedMethod: string;
@@ -11,6 +12,7 @@ interface MathInputPanelProps {
 export function MathInputPanel({ selectedMethod, value, onChange }: MathInputPanelProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const bgPrimary = isDark ? "bg-[#0F172A]" : "bg-white";
   const bgSecondary = isDark ? "bg-[#1E293B]" : "bg-[#F1F5F9]";
@@ -27,7 +29,39 @@ export function MathInputPanel({ selectedMethod, value, onChange }: MathInputPan
     : "placeholder-[#94A3B8]";
 
   const handleInsertSymbol = (symbol: string) => {
-    onChange(value + symbol);
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      onChange(value + symbol);
+      return;
+    }
+
+    const start = textarea.selectionStart ?? value.length;
+    const end = textarea.selectionEnd ?? value.length;
+
+    let insertText = symbol;
+    let cursorOffset = symbol.length;
+
+    if (symbol === "()" ) {
+      insertText = "()";
+      cursorOffset = 1;
+    }
+
+    if (symbol === "log(, 10)") {
+      insertText = symbol;
+      cursorOffset = "log(".length;
+    }
+
+    const newValue = value.slice(0, start) + insertText + value.slice(end);
+    onChange(newValue);
+
+    const newCursorPos = start + cursorOffset;
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = newCursorPos;
+        textareaRef.current.selectionEnd = newCursorPos;
+        textareaRef.current.focus();
+      }
+    });
   };
 
   return (
@@ -73,6 +107,7 @@ export function MathInputPanel({ selectedMethod, value, onChange }: MathInputPan
           {/* Large Math Input */}
           <div className="relative">
             <textarea
+              ref={textareaRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder="x**3 - 2*x - 5"

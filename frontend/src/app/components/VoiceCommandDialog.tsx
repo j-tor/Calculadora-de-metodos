@@ -69,40 +69,58 @@ function equationToPythonSyntax(raw: string) {
   // Normalize common operator variants
   s = s.replace(/\^/g, '**');
 
-  // Spanish voice patterns -> python operators
-  // x a la 4 => x**4
-  s = s.replace(/\b([a-zA-Z]\w*)\s+a\s+la\s+(-?\d+(?:[.,]\d+)?)\b/gi, (_, base, exp) => {
-    const e = String(exp).replace(',', '.');
-    return `${base}**${e}`;
-  });
-  // ( ... ) a la 4 => ( ... )**4
-  s = s.replace(/(\))\s+a\s+la\s+(-?\d+(?:[.,]\d+)?)\b/gi, (_, close, exp) => {
-    const e = String(exp).replace(',', '.');
-    return `${close}**${e}`;
-  });
+  // Constants and basic functions
+  s = s.replace(/\b(pi|π)\b/gi, 'pi');
+  s = s.replace(/\beuler\b/gi, 'E');
+  s = s.replace(/\bmil\b/gi, '1000');
+  s = s.replace(/\bexponencial\s+de\s+([a-zA-Z]\w*)\b/gi, 'E**$1');
+  s = s.replace(/\bexponencial\s+de\s+x\b/gi, 'E**x');
 
-  // x elevado a 2  => x**2
-  s = s.replace(/\b([a-zA-Z]\w*)\s+elevado\s+a\s+(-?\d+(?:[.,]\d+)?)\b/gi, (_, base, exp) => {
-    const e = String(exp).replace(',', '.');
-    return `${base}**${e}`;
-  });
-  // ( ... ) elevado a 2 => ( ... )**2
-  s = s.replace(/(\))\s+elevado\s+a\s+(-?\d+(?:[.,]\d+)?)\b/gi, (_, close, exp) => {
-    const e = String(exp).replace(',', '.');
-    return `${close}**${e}`;
-  });
+  // e (as a single word) -> E (Euler)
+  s = s.replace(/(^|[\s+\-*/=(])e(?=[\s+\-*/=^)]|$)/gi, '$1E');
 
-  // al cuadrado / al cubo
+  // Logarithms
+  s = s.replace(/\blogaritmo\s+natural\b/gi, 'log(');
+  s = s.replace(/\bln\b/gi, 'log(');
+  s = s.replace(/\blogaritmo\b/gi, 'log(');
+  s = s.replace(/\blog\b/gi, 'log(');
+
+  // Trig functions
+  s = s.replace(/\bseno\b/gi, 'sin(');
+  s = s.replace(/\bsen\b/gi, 'sin(');
+  s = s.replace(/\bsin\b/gi, 'sin(');
+  s = s.replace(/\bcoseno\b/gi, 'cos(');
+  s = s.replace(/\bcos\b/gi, 'cos(');
+  s = s.replace(/\btangente\b/gi, 'tan(');
+  s = s.replace(/\btan\b/gi, 'tan(');
+
+  // Square root
+  s = s.replace(/\bra[ií]z\b/gi, 'sqrt(');
+  s = s.replace(/\bsqrt\b/gi, 'sqrt(');
+
+  // Powers
   s = s.replace(/\bal\s+cuadrado\b/gi, '**2');
   s = s.replace(/\bal\s+cubo\b/gi, '**3');
+  s = s.replace(/\belevado\s+a\b/gi, '**');
+  s = s.replace(/\ba\s+la\b/gi, '**');
 
-  // por / entre / más / menos
+  // x a la 4 => x**4
+  s = s.replace(/\b([a-zA-Z]\w*)\s+\*\*\s+(-?\d+(?:[.,]\d+)?)\b/gi, (_, base, exp) => {
+    const e = String(exp).replace(',', '.');
+    return `${base}**${e}`;
+  });
+
+  // Spanish voice patterns -> python operators
   s = s.replace(/\bpor\b/gi, '*');
+  s = s.replace(/\bmultiplicado\s+por\b/gi, '*');
   s = s.replace(/\bentre\b/gi, '/');
+  s = s.replace(/\bdividido\s+entre\b/gi, '/');
   s = s.replace(/\bm[aá]s\b/gi, '+');
   s = s.replace(/\bmenos\b/gi, '-');
+  s = s.replace(/\bnegativo\b/gi, '-');
+  s = s.replace(/\bnegatico\b/gi, '-');
 
-  // Trig shortcuts (sen -> sin)
+  // Trig shortcuts (ensure parentheses)
   s = s.replace(/\bsen\s*\(/gi, 'sin(');
   s = s.replace(/\btg\s*\(/gi, 'tan(');
 
@@ -346,7 +364,11 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
 
             const data = await response.json();
             if (data.success) {
-              resolve(data.text);
+              const transcriptText = data.text ?? '';
+              setMessage(`Escuché: "${transcriptText}"`);
+              // Mostrar la transcripción antes de procesar la intención
+              await new Promise((r) => window.setTimeout(r, 1000));
+              resolve(transcriptText);
             } else {
               throw new Error('Transcription failed');
             }
@@ -441,14 +463,14 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     setStep('asking-equation');
     setMessage('Dime la ecuación a usar.');
 
+    const capturedFlowId = flowIdRef.current;
     speakText('Ahora dime la ecuación a usar.', async () => {
-      const flowId = flowIdRef.current;
-      if (flowId !== flowIdRef.current) return;
+      if (capturedFlowId !== flowIdRef.current) return;
       setStep('listening-equation');
       setMessage(`Te escucho. Cuando termines, presiona "Detener".`);
       try {
         const transcript = await startRecording();
-        if (flowId !== flowIdRef.current) return;
+        if (capturedFlowId !== flowIdRef.current) return;
         handleSpeechResult(transcript);
       } catch (error) {
         console.error('Recording error:', error);
@@ -468,7 +490,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       if (method && params.length > 0) {
         askParam(0, params);
       } else if (method) {
-        finishFlow(method, stateRef.current.collectedParams, stateRef.current.equation);
+        finishFlow(method, stateRef.current.collectedParams);
       } else {
         startFlow(flowIdRef.current);
       }
@@ -476,7 +498,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
   };
 
   const processMethodSelection = (normalizedText: string, rawText: string) => {
-    let foundMethod = null;
+    let foundMethod: string | null = null;
     let fallbackMethodName = "";
     
     // Sort keys by length descending to match longer phrases first
@@ -496,8 +518,9 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       setCurrentParamIdx(0);
       
       setMessage(`Método seleccionado: ${fallbackMethodName}`);
+      const methodToUse = foundMethod;
       speakText(`De acuerdo, usaremos el método de ${fallbackMethodName}.`, () => {
-        if (METHODS_REQUIRE_EQUATION.has(foundMethod)) {
+        if (METHODS_REQUIRE_EQUATION.has(methodToUse)) {
           askEquation();
           return;
         }
@@ -507,7 +530,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
           return;
         }
 
-        finishFlow(foundMethod, {}, '');
+        finishFlow(methodToUse, {});
       });
     } else {
       setStep('error');
@@ -528,15 +551,28 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
 
   const askParam = (idx: number, params: any[]) => {
     if (idx >= params.length) {
-      finishFlow(stateRef.current.currentMethod!, stateRef.current.collectedParams, stateRef.current.equation);
+      finishFlow(stateRef.current.currentMethod!, stateRef.current.collectedParams);
       return;
     }
     
     const param = params[idx];
     setStep('asking-param');
-    setMessage(`Por favor dime el valor para: ${param.label}`);
+    const methodToUse = stateRef.current.currentMethod;
+    const isInterpolationXEval =
+      (methodToUse === 'lagrange' ||
+        methodToUse === 'newton-divided' ||
+        methodToUse === 'cubic-spline') &&
+      param?.name === 'x_eval';
+
+    setMessage(
+      isInterpolationXEval
+        ? '¿En qué valor de x deseas evaluar la interpolación?'
+        : `Por favor dime el valor para: ${param.label}`
+    );
     
-    const promptText = `Por favor, dime el valor de ${param.label.split('(')[0].trim()}`;
+    const promptText = isInterpolationXEval
+      ? '¿En qué valor de x deseas evaluar la interpolación?'
+      : `Por favor, dime el valor de ${param.label.split('(')[0].trim()}`;
     speakText(promptText, async () => {
       setStep('listening-param');
       setMessage(`Te escucho. Cuando termines, presiona "Detener".`);
@@ -558,7 +594,15 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     
     if (param.type === 'number') {
       // Clean up the text for number parsing
-      let numeric = rawText.replace(/ /g, '').replace(/coma/g, '.').replace(/punto/g, '.');
+      let numeric = rawText
+        .replace(/\s+/g, '')
+        .replace(/coma/g, '.')
+        .replace(/punto/g, '.');
+
+      // Allow scientific notation helpers in Spanish STT
+      numeric = numeric.replace(/\bexponencial\b/gi, 'e');
+      // e may appear as standalone token; keep it, but we only parse it later
+      numeric = numeric.replace(/\bE\b/g, 'E');
       
       // Word to number mapping (Spanish)
       const wordsToNum: Record<string, string> = {
@@ -574,7 +618,8 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       }
       
       // Extract number (including decimals and negatives)
-      const numberMatch = numeric.match(/-?\d+\.?\d*/);
+      // Also allow scientific notation: 1e-6, 2E3
+      const numberMatch = numeric.match(/-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/);
       if (numberMatch) {
         numeric = numberMatch[0];
       }
@@ -687,6 +732,12 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
           <div className="mt-6 text-center h-12 flex items-center justify-center">
              <p className="text-[#CBD5E1] font-medium text-lg leading-snug">{message}</p>
           </div>
+          {isRecording && (
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-300 text-xs font-semibold">Grabando voz...</span>
+            </div>
+          )}
 
           {(step === 'listening-method' || step === 'listening-equation' || step === 'listening-param') && (
             <div className="mt-4 flex gap-3">

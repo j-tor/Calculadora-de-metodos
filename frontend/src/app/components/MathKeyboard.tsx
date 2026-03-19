@@ -5,16 +5,19 @@ interface MathKeyboardProps {
 }
 
 const mathButtons = [
-  { label: "√", value: "sqrt()", type: "function" },
+  { label: "√", value: "sqrt(", type: "function" },
   { label: "x²", value: "**2", type: "operator" },
-  { label: "xⁿ", value: "**", type: "operator" },
+  { label: "xⁿ", value: "x**", type: "operator" },
   { label: "π", value: "pi", type: "constant" },
-  { label: "e", value: "e", type: "constant" },
-  { label: "log", value: "log()", type: "function" },
-  { label: "ln", value: "ln()", type: "function" },
-  { label: "sin", value: "sin()", type: "function" },
-  { label: "cos", value: "cos()", type: "function" },
-  { label: "tan", value: "tan()", type: "function" },
+  { label: "e", value: "E", type: "constant" },
+  { label: "log", value: "log(, 10)", type: "function" },
+  { label: "ln", value: "log(", type: "function" },
+  { label: "sin", value: "sin(", type: "function" },
+  { label: "cos", value: "cos(", type: "function" },
+  { label: "tan", value: "tan(", type: "function" },
+  { label: "+", value: "+", type: "operator" },
+  { label: "-", value: "-", type: "operator" },
+  { label: "×", value: "*", type: "operator" },
   { label: "/", value: "/", type: "operator" },
   { label: "()", value: "()", type: "operator" },
 ];
