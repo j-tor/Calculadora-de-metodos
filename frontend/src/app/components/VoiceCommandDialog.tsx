@@ -37,6 +37,7 @@ const METHOD_MAP: Record<string, string> = {
   'descomposición lu': 'lu',
   'doolittle': 'lu',
   'crout': 'lu',
+  'krout': 'lu',
   'lagrange': 'lagrange',
   'interpolacion lagrange': 'lagrange',
   'interpolación lagrange': 'lagrange',
@@ -121,15 +122,6 @@ const METHODS_REQUIRE_EQUATION = new Set([
   'newton',
   'bisection',
   'fixed-point',
-  'trapezoidal',
-  'simpson-1-3',
-  'simpson-3-8',
-  'euler',
-  'euler-order',
-  'verlet',
-  'verlet-error',
-  'rk2',
-  'rk4',
 ]);
 
 export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommandDialogProps) {

@@ -197,15 +197,17 @@ def analyze_and_calculate(
                 return {"method": "Diagonal", "solution": sol}
             raise ValueError("matrix_type debe ser upper, lower o diagonal.")
 
-        elif "lu" in requested_method or "doolittle" in requested_method or "crout" in requested_method or "kourt" in requested_method:
+        elif "lu" in requested_method or "doolittle" in requested_method or "crout" in requested_method or "kourt" in requested_method or "krout" in requested_method:
             if matrix_a is None:
                 raise ValueError("Se requiere matrix_a para LU.")
             variant = lu_variant
             if variant is None:
                 if "doolittle" in requested_method:
                     variant = "doolittle"
-                elif "crout" in requested_method or "kourt" in requested_method:
+                elif "crout" in requested_method or "kourt" in requested_method or "krout" in requested_method:
                     variant = "crout"
+                else:
+                    variant = "doolittle"
             if variant == "doolittle":
                 L, U = lu_doolittle(matrix_a)
             elif variant == "crout":

@@ -11,6 +11,23 @@ def _tolist(value):
         return value.tolist()
     return value
 
+def _extract_errors(value):
+    if value is None:
+        return None, None
+    if isinstance(value, (list, tuple)):
+        if len(value) == 0:
+            return None, None
+        return _tolist(value), value[-1]
+    if hasattr(value, "tolist"):
+        value_list = value.tolist()
+        if not value_list:
+            return None, None
+        return value_list, value_list[-1]
+    if isinstance(value, (int, float)):
+        return None, value
+    return None, None
+
+
 def _parse_vector(value: str):
     if value is None:
         return None
@@ -84,6 +101,8 @@ async def calculate_root_controller(request: CalculationRequest):
                 "c": _tolist(c),
                 "d": _tolist(d),
             }
+        errors, last_error = _extract_errors(results.get("error"))
+
         return CalculationResponse(
             method_used=results.get("method", ""),
             result=results.get("result"),
@@ -105,8 +124,8 @@ async def calculate_root_controller(request: CalculationRequest):
             v_values=_tolist(results.get("v_values")),
             order=results.get("order"),
             local_order=results.get("local_order"),
-            errors=results.get("error"),
-            error=results.get("error")[-1],
+            errors=errors,
+            error=last_error,
             converged=results.get("converged"),
         )
 
