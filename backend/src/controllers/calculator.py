@@ -127,6 +127,7 @@ async def calculate_root_controller(request: CalculationRequest):
             errors=errors,
             error=last_error,
             converged=results.get("converged"),
+            x_eval=results.get("x_eval"),
         )
 
     except ValueError as e:

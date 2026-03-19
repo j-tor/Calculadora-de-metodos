@@ -1,12 +1,4 @@
-import {
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  Hash,
-  ChevronDown,
-  ChevronUp,
-  Info,
-} from "lucide-react";
+import { CheckCircle2, AlertCircle, TrendingUp, Hash, ChevronDown, ChevronUp, Info, Sigma } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 
@@ -39,6 +31,7 @@ export interface CalculationResponse {
   error?: number;
   errors?: number[];
   converged?: boolean;
+  x_eval?: number;
 }
 
 interface DynamicResultsPanelProps {
@@ -49,23 +42,24 @@ interface DynamicResultsPanelProps {
   isLoading: boolean;
 }
 
-// Helper to format results for display cards
+const INTERPOLATION_METHODS = ["lagrange", "newton-divided", "cubic-spline"];
+const ROOT_METHODS = ["bisection", "newton", "fixed-point"];
+
 const getDisplayResults = (method: string, data: CalculationResponse | null) => {
   if (!data) return [];
 
   const results = [];
 
-  // common result for root finding
-  if (data.result !== undefined && data.result !== null) {
+  if (ROOT_METHODS.includes(method) && data.result !== undefined && data.result !== null) {
     results.push({
       label: "Resultado",
       value: data.result.toFixed(6),
       icon: CheckCircle2,
       color: "cyan",
     });
-  } else if (data.value !== undefined && data.value !== null) {
+  } else if (INTERPOLATION_METHODS.includes(method) && data.value !== undefined && data.value !== null) {
     results.push({
-      label: "Valor Calculado",
+      label: "Valor Interpolado",
       value: data.value.toFixed(6),
       icon: CheckCircle2,
       color: "cyan",
@@ -97,6 +91,46 @@ const getDisplayResults = (method: string, data: CalculationResponse | null) => 
 
   return results;
 };
+
+function toSuperscript(exp: string) {
+  const map: Record<string, string> = {
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹",
+    "-": "⁻",
+  };
+  return exp
+    .split("")
+    .map((ch) => map[ch] ?? ch)
+    .join("");
+}
+
+function formatPolynomialToMath(poly: string): string {
+  let s = poly.replace(/\s+/g, "");
+  s = s.replace(
+    /([+\-]?)(\d*\.?\d+)?\*?x(\*\*(\d+))?/g,
+    (_, sign, coeff, _expPart, exp) => {
+      const effectiveCoeff = coeff === undefined || coeff === "" ? "1" : coeff;
+      const num = Number(effectiveCoeff);
+      const rounded = num.toFixed(6);
+      const cleanedCoeff = rounded === "1.000000" ? "" : rounded;
+      const signChar = sign === "" ? "" : sign;
+      const expStr = exp && exp !== "1" ? toSuperscript(exp) : "";
+      return `${signChar}${cleanedCoeff}x${expStr}`;
+    }
+  );
+  s = s.replace(/\*/g, "");
+  s = s.replace(/^\+/, "");
+  s = s.replace(/\+\-/g, "-");
+  return s;
+}
 
 export function DynamicResultsPanel({
   selectedMethod,
@@ -173,12 +207,33 @@ export function DynamicResultsPanel({
   }
 
   const results = getDisplayResults(selectedMethod, apiResult);
+  const isInterpolationMethod = INTERPOLATION_METHODS.includes(selectedMethod);
+  const isRootMethod = ROOT_METHODS.includes(selectedMethod);
   const iterations = apiResult.x_values ? apiResult.x_values.map((xi, idx) => ({
     iteration: idx,
     xi: xi,
     fxi: apiResult.y_values ? apiResult.y_values[idx] : 0,
     error: apiResult?.errors?.[idx] ?? 0,
   })) : [];
+  const points = (apiResult.x_values && apiResult.y_values)
+    ? apiResult.x_values.map((x, idx) => ({ x, y: apiResult.y_values?.[idx] }))
+    : [];
+  const newtonCoeffs = apiResult.coefficients ?? [];
+  const spline = apiResult.spline_coefficients;
+
+  const newtonPolynomialText = (() => {
+    if (selectedMethod !== "newton-divided" || !apiResult.coefficients || !apiResult.x_values) {
+      return null;
+    }
+    const xNodes = apiResult.x_values;
+    const terms = apiResult.coefficients.map((coef, idx) => {
+      const c = Number(coef).toFixed(6);
+      if (idx === 0) return `${c}`;
+      const factors = xNodes.slice(0, idx).map((xi) => `(x - ${Number(xi).toFixed(6)})`).join("");
+      return `${c}${factors}`;
+    });
+    return terms.join(" + ");
+  })();
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -226,116 +281,161 @@ export function DynamicResultsPanel({
         })}
       </div>
 
-      {/* Convergence Table */}
-      <div
-        className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}
-      >
-        <button
-          onClick={() => setShowTable(!showTable)}
-          className={`w-full bg-gradient-to-r ${bgGradient} px-4 md:px-6 py-3 md:py-4 border-b ${borderSecondary} flex items-center justify-between ${bgHover} transition-all`}
-        >
-          <div>
-            <h3
-              className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}
-            >
-              Tabla de Convergencia
-            </h3>
-            <p className={`text-xs md:text-sm ${textSecondary} mt-1 text-left`}>
-              Detalles del proceso iterativo
-            </p>
-          </div>
-          {showTable ? (
-            <ChevronUp className={`w-5 h-5 ${textSecondary} flex-shrink-0`} />
-          ) : (
-            <ChevronDown className={`w-5 h-5 ${textSecondary} flex-shrink-0`} />
+      {isInterpolationMethod && (
+        <>
+          {((selectedMethod === "lagrange" && apiResult.polynomial) || (selectedMethod === "newton-divided" && newtonPolynomialText)) && (
+            <div className={`${bgPrimary} rounded-xl border ${border} p-4 md:p-6 shadow-xl`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 rounded-lg ${isDark ? "bg-[#22D3EE]/10" : "bg-[#0891B2]/10"}`}>
+                  <Sigma className="w-4 h-4 md:w-5 md:h-5" style={{ color: isDark ? "#22D3EE" : "#0891B2" }} />
+                </div>
+                <span className={`text-xs md:text-sm ${textSecondary}`}>Polinomio Resultante P(x)</span>
+              </div>
+              <div className={`text-sm md:text-base ${textPrimary} mb-2`} style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                {selectedMethod === "lagrange" ? apiResult.polynomial : newtonPolynomialText}
+              </div>
+              {selectedMethod === "lagrange" && apiResult.polynomial && (
+                <>
+                  <div className={`text-xs md:text-sm ${textSecondary} mt-2 mb-1`}>
+                    Notación Matemática
+                  </div>
+                  <div className={`text-sm md:text-base ${textPrimary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                    {formatPolynomialToMath(apiResult.polynomial)}
+                  </div>
+                </>
+              )}
+            </div>
           )}
-        </button>
 
-        {showTable && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className={bgTableRow}>
-                <tr>
-                  <th
-                    className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}
-                  >
-                    Iteración
-                  </th>
-                  <th
-                    className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}
-                  >
-                    x<sub>i</sub>
-                  </th>
-                  <th
-                    className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}
-                  >
-                    f(x<sub>i</sub>)
-                  </th>
-                  <th
-                    className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}
-                  >
-                    Error
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                className={`divide-y ${isDark ? "divide-[#1E293B]" : "divide-[#E2E8F0]"
-                  }`}
-              >
-                {iterations.map((row, idx) => (
-                  <tr
-                    key={row.iteration}
-                    className={`transition-colors ${idx === iterations.length - 1
-                      ? isDark
-                        ? "bg-gradient-to-r from-[#22D3EE]/10 to-transparent"
-                        : "bg-gradient-to-r from-[#0891B2]/10 to-transparent"
-                      : bgTableHover
-                      }`}
-                  >
-                    <td
-                      className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm font-medium ${textTertiary}`}
-                      style={{ fontFamily: "JetBrains Mono, monospace" }}
-                    >
-                      {row.iteration}
-                    </td>
-                    <td
-                      className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`}
-                      style={{ fontFamily: "JetBrains Mono, monospace" }}
-                    >
-                      {row.xi?.toFixed(4) ?? "0.0000"}
-                    </td>
-                    <td
-                      className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`}
-                      style={{ fontFamily: "JetBrains Mono, monospace" }}
-                    >
-                      {row.fxi?.toFixed(4) ?? "0.0000"}
-                    </td>
-                    <td
-                      className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm`}
-                      style={{ fontFamily: "JetBrains Mono, monospace" }}
-                    >
-                      <span
-                        style={{
-                          color:
-                            row.error < 0.02
-                              ? isDark
-                                ? "#22D3EE"
-                                : "#0891B2"
-                              : isDark
-                                ? "#94A3B8"
-                                : "#475569",
-                        }}
-                      >
-                        {row.error.toFixed(4)}
-                      </span>
-                    </td>
+          <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
+            <div className={`w-full bg-gradient-to-r ${bgGradient} px-4 md:px-6 py-3 md:py-4 border-b ${borderSecondary}`}>
+              <h3 className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}>Tabla de Puntos</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className={bgTableRow}>
+                  <tr>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>x</th>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>y</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className={`divide-y ${isDark ? "divide-[#1E293B]" : "divide-[#E2E8F0]"}`}>
+                  {points.map((row, idx) => (
+                    <tr key={idx} className={bgTableHover}>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(row.x).toFixed(6)}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(row.y).toFixed(6)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        )}
-      </div>
+
+          {selectedMethod === "newton-divided" && (
+            <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
+              <div className={`w-full bg-gradient-to-r ${bgGradient} px-4 md:px-6 py-3 md:py-4 border-b ${borderSecondary}`}>
+                <h3 className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}>Tabla de Diferencias Divididas</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className={bgTableRow}>
+                    <tr>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>k</th>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>Coeficiente</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${isDark ? "divide-[#1E293B]" : "divide-[#E2E8F0]"}`}>
+                    {newtonCoeffs.map((coef, idx) => (
+                      <tr key={idx} className={bgTableHover}>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{idx}</td>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(coef).toFixed(6)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {selectedMethod === "cubic-spline" && spline && (
+            <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
+              <div className={`w-full bg-gradient-to-r ${bgGradient} px-4 md:px-6 py-3 md:py-4 border-b ${borderSecondary}`}>
+                <h3 className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}>Coeficientes del Spline</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className={bgTableRow}>
+                    <tr>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>Intervalo</th>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>a</th>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>b</th>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>c</th>
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>d</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${isDark ? "divide-[#1E293B]" : "divide-[#E2E8F0]"}`}>
+                    {(spline.a ?? []).map((_, idx) => (
+                      <tr key={idx} className={bgTableHover}>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{idx}</td>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(spline.a?.[idx] ?? 0).toFixed(6)}</td>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(spline.b?.[idx] ?? 0).toFixed(6)}</td>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(spline.c?.[idx] ?? 0).toFixed(6)}</td>
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(spline.d?.[idx] ?? 0).toFixed(6)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {isRootMethod && (
+        <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
+          <button
+            onClick={() => setShowTable(!showTable)}
+            className={`w-full bg-gradient-to-r ${bgGradient} px-4 md:px-6 py-3 md:py-4 border-b ${borderSecondary} flex items-center justify-between ${bgHover} transition-all`}
+          >
+            <div>
+              <h3 className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}>Tabla de Convergencia</h3>
+              <p className={`text-xs md:text-sm ${textSecondary} mt-1 text-left`}>Detalles del proceso iterativo</p>
+            </div>
+            {showTable ? (
+              <ChevronUp className={`w-5 h-5 ${textSecondary} flex-shrink-0`} />
+            ) : (
+              <ChevronDown className={`w-5 h-5 ${textSecondary} flex-shrink-0`} />
+            )}
+          </button>
+
+          {showTable && (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className={bgTableRow}>
+                  <tr>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>Iteración</th>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>x<sub>i</sub></th>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>f(x<sub>i</sub>)</th>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>Error</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${isDark ? "divide-[#1E293B]" : "divide-[#E2E8F0]"}`}>
+                  {iterations.map((row, idx) => (
+                    <tr key={row.iteration} className={`transition-colors ${idx === iterations.length - 1 ? (isDark ? "bg-gradient-to-r from-[#22D3EE]/10 to-transparent" : "bg-gradient-to-r from-[#0891B2]/10 to-transparent") : bgTableHover}`}>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm font-medium ${textTertiary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{row.iteration}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{row.xi?.toFixed(4) ?? "0.0000"}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{row.fxi?.toFixed(4) ?? "0.0000"}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm`} style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                        <span style={{ color: row.error < 0.02 ? (isDark ? "#22D3EE" : "#0891B2") : (isDark ? "#94A3B8" : "#475569") }}>{row.error.toFixed(4)}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

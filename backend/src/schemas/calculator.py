@@ -71,3 +71,4 @@ class CalculationResponse(BaseModel):
     error: Optional[float] = None
     errors: Optional[List[float]] = None
     converged: Optional[bool] = None
+    x_eval: Optional[float] = None

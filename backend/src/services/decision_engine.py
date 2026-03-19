@@ -115,7 +115,14 @@ def analyze_and_calculate(
             value = None
             if x_eval is not None:
                 value = newton_interpolation_eval(x_values, coef, x_eval)
-            return {"method": "Interpolación de Newton", "coefficients": coef, "value": value, "x_eval": x_eval}
+            return {
+                "method": "Interpolación de Newton",
+                "coefficients": coef,
+                "value": value,
+                "x_eval": x_eval,
+                "x_values": list(x_values),
+                "y_values": list(y_values),
+            }
 
         elif "newton" in requested_method and "interpol" not in requested_method:
             if equation_str is None:
@@ -156,7 +163,14 @@ def analyze_and_calculate(
             if x_eval is not None:
                 value = lagrange_interpolation(x_values, y_values, x_eval)
             poly = lagrange_polynomial(x_values, y_values)
-            return {"method": "Lagrange", "value": value, "polynomial": poly, "x_eval": x_eval}
+            return {
+                "method": "Lagrange",
+                "value": value,
+                "polynomial": poly,
+                "x_eval": x_eval,
+                "x_values": list(x_values),
+                "y_values": list(y_values),
+            }
 
         elif "polinomica" in requested_method or "polynomial" in requested_method:
             if x_values is None or y_values is None:
@@ -174,7 +188,14 @@ def analyze_and_calculate(
             value = None
             if x_eval is not None:
                 value = cubic_spline_eval(x_values, coeffs, x_eval)
-            return {"method": "Trazos Cúbicos", "coefficients": coeffs, "value": value, "x_eval": x_eval}
+            return {
+                "method": "Trazos Cúbicos",
+                "coefficients": coeffs,
+                "value": value,
+                "x_eval": x_eval,
+                "x_values": list(x_values),
+                "y_values": list(y_values),
+            }
 
         elif "matriz" in requested_method or "triangular" in requested_method or "diagonal" in requested_method:
             if matrix_a is None or vector_b is None:
