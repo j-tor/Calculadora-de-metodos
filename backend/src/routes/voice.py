@@ -9,6 +9,7 @@ router = APIRouter(prefix="/api/voice", tags=["Voice"])
 def get_groq_api_key():
     """Get Groq API key from environment"""
     api_key = os.getenv("GROQ_API_KEY")
+    #hola
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
     return api_key
