@@ -90,6 +90,7 @@ function AppContent() {
 
   const handleMethodSelect = (method: string) => {
     setSelectedMethod(method);
+    console.log(method);
 
     if (window.innerWidth < 1024) {
       setIsSidebarCollapsed(true);

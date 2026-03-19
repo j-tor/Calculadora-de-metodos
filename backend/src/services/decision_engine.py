@@ -115,7 +115,8 @@ def analyze_and_calculate(
             res, iters, history = newton_raphson_method(expr, x, start_point, tol, max_iter)
             x_vals = [h["x"] for h in history]
             y_vals = [h["y"] for h in history]
-            return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
+            error = [h["error"] for h in history]
+            return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals, "error":error}
 
         elif "punto fijo" in requested_method or "fixed" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
@@ -126,7 +127,8 @@ def analyze_and_calculate(
             res, iters, history = fixed_point_method(g_expr, x, start_point, tol, max_iter)
             x_vals = [h["x"] for h in history]
             y_vals = [h["y"] for h in history]
-            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
+            error = [h["error"] for h in history]
+            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x, "x_values": x_vals, "y_values": y_vals, "error": error}
 
         elif "convergenciafija" in requested_method or "convergencia fija" in requested_method or "convergence" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str

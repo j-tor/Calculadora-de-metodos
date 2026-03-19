@@ -38,26 +38,25 @@ def bisection_method(f: Callable, a: float, b: float, tol: float, max_iter: int)
 def newton_raphson_method(f_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float, max_iter: int) -> Tuple[float, int, List[Dict[str, float]]]:
     f_prime_expr = sp.diff(f_expr, x_sym)
     
-    # Lambdify for fast evaluation
     f = sp.lambdify(x_sym, f_expr, "numpy")
     f_prime = sp.lambdify(x_sym, f_prime_expr, "numpy")
     
     x_n = x0
     iterations = 0
     history = []
-    
+    error = 1
     for _ in range(max_iter):
         iterations += 1
         fx = f(x_n)
         dfx = f_prime(x_n)
         
-        history.append({"x": float(x_n), "y": float(fx), "iteration": iterations})
+        history.append({"x": float(x_n), "y": float(fx), "iteration": iterations, "error": error})
         
         if abs(dfx) < 1e-12:
             raise ValueError("Derivada cercana a cero. El método de Newton-Raphson falló.")
             
         x_next = x_n - fx / dfx
-        
+        error = abs(float(x_next) - float(x_n))
         if abs(x_next - x_n) < tol:
             return float(x_next), iterations, history
         
@@ -70,10 +69,12 @@ def fixed_point_method(g_expr: sp.Expr, x_sym: sp.Symbol, x0: float, tol: float,
     x_n = x0
     iterations = 0
     history = []
+    error = 1
     for _ in range(max_iter):
         iterations += 1
         x_next = g(x_n)
-        history.append({"x": float(x_n), "y": float(x_next), "iteration": iterations})
+        error = abs(x_next - x_n)
+        history.append({"x": float(x_n), "y": float(x_next), "iteration": iterations, "error": error})
         if abs(x_next - x_n) < tol:
             return float(x_next), iterations, history
         x_n = x_next

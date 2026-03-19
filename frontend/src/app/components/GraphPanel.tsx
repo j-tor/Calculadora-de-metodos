@@ -78,7 +78,7 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
               : "grid-cols-1"
           }`}>
             {/* Function Plot */}
-            {selectedMethod !== "bisection" && (
+            {selectedMethod !== "bisection" && selectedMethod !== "newton" && selectedMethod !== "fixed-point" && (
               <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
                 <h4 className={`text-sm font-semibold ${textTertiary} mb-3`}>Gráfica de la Función</h4>
                 <ResponsiveContainer width="100%" height={320}>
