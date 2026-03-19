@@ -23,6 +23,18 @@ function AppContent() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
+  const METHOD_TO_BACKEND: Record<string, string> = {
+    "newton": "newton",
+    "bisection": "bisection",
+    "fixed-point": "fixed-point",
+    "jacobi": "jacobi",
+    "gauss-seidel": "gauss-seidel",
+    "lu": "lu",
+    "lagrange": "lagrange",
+    "newton-divided": "newton-divided",
+    "cubic-spline": "cubic-spline",
+  };
+
   const handleCalculate = async (overrides?: {
     method?: string;
     equation?: string;
@@ -31,10 +43,11 @@ function AppContent() {
     const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
     const endpoint = `${apiBase}/api/calculator/calculate`;
     const methodToUse = overrides?.method ?? selectedMethod;
+    const backendMethod = METHOD_TO_BACKEND[methodToUse] ?? methodToUse;
     const equationToUse = overrides?.equation ?? mathInput;
     const paramValuesToUse = overrides?.paramValues ?? paramValues;
 
-    const payload: Record<string, any> = { method: methodToUse };
+    const payload: Record<string, any> = { method: backendMethod };
 
     if (equationToUse.trim() !== "") {
       payload.equation = equationToUse.trim();
@@ -72,7 +85,7 @@ function AppContent() {
       }
 
       const data = await response.json();
-      setResultMethod(selectedMethod);
+      setResultMethod(backendMethod);
       setApiResult(data);
       setHasResults(true);
     } catch (error: any) {
