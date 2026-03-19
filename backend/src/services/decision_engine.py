@@ -94,7 +94,18 @@ def analyze_and_calculate(
             res, iters, history = bisection_method(f_lamb, x_start, x_end, tol, max_iter)
             x_vals = [h["x"] for h in history]
             y_vals = [h["y"] for h in history]
-            return {"method": "Bisección", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
+            errors = [h["error"] for h in history]
+            return {
+                "method": "Bisección",
+                "result": res,
+                "iterations": iters,
+                "expression": expr,
+                "symbol": x,
+                "x_values": x_vals,
+                "y_values": y_vals,
+                "error": errors
+            }
+
         
         elif "newton" in requested_method and "interpol" not in requested_method:
             if equation_str is None:
@@ -104,7 +115,8 @@ def analyze_and_calculate(
             res, iters, history = newton_raphson_method(expr, x, start_point, tol, max_iter)
             x_vals = [h["x"] for h in history]
             y_vals = [h["y"] for h in history]
-            return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
+            error = [h["error"] for h in history]
+            return {"method": "Newton-Raphson", "result": res, "iterations": iters, "expression": expr, "symbol": x, "x_values": x_vals, "y_values": y_vals, "error":error}
 
         elif "punto fijo" in requested_method or "fixed" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
@@ -115,7 +127,8 @@ def analyze_and_calculate(
             res, iters, history = fixed_point_method(g_expr, x, start_point, tol, max_iter)
             x_vals = [h["x"] for h in history]
             y_vals = [h["y"] for h in history]
-            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x, "x_values": x_vals, "y_values": y_vals}
+            error = [h["error"] for h in history]
+            return {"method": "Punto Fijo", "result": res, "iterations": iters, "expression": g_expr, "symbol": x, "x_values": x_vals, "y_values": y_vals, "error": error}
 
         elif "convergenciafija" in requested_method or "convergencia fija" in requested_method or "convergence" in requested_method:
             expr_str = g_equation_str if g_equation_str is not None else equation_str
@@ -184,15 +197,17 @@ def analyze_and_calculate(
                 return {"method": "Diagonal", "solution": sol}
             raise ValueError("matrix_type debe ser upper, lower o diagonal.")
 
-        elif "lu" in requested_method or "doolittle" in requested_method or "crout" in requested_method or "kourt" in requested_method:
+        elif "lu" in requested_method or "doolittle" in requested_method or "crout" in requested_method or "kourt" in requested_method or "krout" in requested_method:
             if matrix_a is None:
                 raise ValueError("Se requiere matrix_a para LU.")
             variant = lu_variant
             if variant is None:
                 if "doolittle" in requested_method:
                     variant = "doolittle"
-                elif "crout" in requested_method or "kourt" in requested_method:
+                elif "crout" in requested_method or "kourt" in requested_method or "krout" in requested_method:
                     variant = "crout"
+                else:
+                    variant = "doolittle"
             if variant == "doolittle":
                 L, U = lu_doolittle(matrix_a)
             elif variant == "crout":

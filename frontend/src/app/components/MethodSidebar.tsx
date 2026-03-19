@@ -1,8 +1,6 @@
 import {
   Calculator,
   Target,
-  Sigma,
-  TrendingUp,
   GitBranch,
   Grid3x3,
   ChevronDown,
@@ -40,35 +38,13 @@ const methodCategories = [
     ],
   },
   {
-    id: "integration",
-    name: "Integracion Numerica",
-    icon: Sigma,
-    methods: [
-      { id: "trapezoidal", name: "Regla del Trapecio" },
-      { id: "simpson-1-3", name: "Simpson 1/3" },
-      { id: "simpson-3-8", name: "Simpson 3/8" },
-    ],
-  },
-  {
-    id: "differential",
-    name: "Ecuaciones Diferenciales",
-    icon: TrendingUp,
-    methods: [
-      { id: "euler", name: "Metodo de Euler" },
-      { id: "euler-order", name: "Orden del Metodo de Euler" },
-      { id: "verlet", name: "Metodo de Verlet" },
-      { id: "verlet-error", name: "Error del Metodo de Verlet" },
-      { id: "rk2", name: "Runge-Kutta 2do Orden (RK2)" },
-      { id: "rk4", name: "Runge-Kutta 4to Orden (RK4)" },
-    ],
-  },
-  {
     id: "interpolation",
     name: "Interpolacion",
     icon: GitBranch,
     methods: [
       { id: "lagrange", name: "Interpolacion de Lagrange" },
       { id: "newton-divided", name: "Interpolacion de Newton" },
+      { id: "cubic-spline", name: "Trazador Cúbico" },
     ],
   },
 ];

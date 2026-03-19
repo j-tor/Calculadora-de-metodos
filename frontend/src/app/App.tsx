@@ -11,6 +11,7 @@ import { VoiceCommandDialog } from "./components/VoiceCommandDialog";
 function AppContent() {
   const [selectedMethod, setSelectedMethod] = useState("newton");
   const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
+  const [resultMethod,setResultMethod] = useState("");
   const [hasResults, setHasResults] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [mathInput, setMathInput] = useState("");
@@ -22,16 +23,24 @@ function AppContent() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const handleCalculate = async () => {
+  const handleCalculate = async (overrides?: {
+    method?: string;
+    equation?: string;
+    paramValues?: Record<string, string>;
+  }) => {
     const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
     const endpoint = `${apiBase}/api/calculator/calculate`;
-    const payload: Record<string, any> = { method: selectedMethod };
+    const methodToUse = overrides?.method ?? selectedMethod;
+    const equationToUse = overrides?.equation ?? mathInput;
+    const paramValuesToUse = overrides?.paramValues ?? paramValues;
 
-    if (mathInput.trim() !== "") {
-      payload.equation = mathInput.trim();
+    const payload: Record<string, any> = { method: methodToUse };
+
+    if (equationToUse.trim() !== "") {
+      payload.equation = equationToUse.trim();
     }
 
-    Object.entries(paramValues).forEach(([key, value]) => {
+    Object.entries(paramValuesToUse).forEach(([key, value]) => {
       if (value === "") return;
       if (key === "matrixA" || key === "vectorB") {
         payload[key] = value;
@@ -63,7 +72,7 @@ function AppContent() {
       }
 
       const data = await response.json();
-
+      setResultMethod(selectedMethod);
       setApiResult(data);
       setHasResults(true);
     } catch (error: any) {
@@ -89,6 +98,7 @@ function AppContent() {
 
   const handleMethodSelect = (method: string) => {
     setSelectedMethod(method);
+    console.log(method);
 
     if (window.innerWidth < 1024) {
       setIsSidebarCollapsed(true);
@@ -209,7 +219,7 @@ function AppContent() {
               </div>
 
               <div>
-                <GraphPanel hasResults={hasResults} apiResult={apiResult} />
+                <GraphPanel selectedMethod={resultMethod} hasResults={hasResults} apiResult={apiResult} />
               </div>
             </div>
           </div>
@@ -219,6 +229,19 @@ function AppContent() {
       <VoiceCommandDialog
         isOpen={isVoiceDialogOpen}
         onClose={() => setIsVoiceDialogOpen(false)}
+        onComplete={(method, params, equation) => {
+          const nextParamValues = { ...paramValues, ...params };
+          setSelectedMethod(method);
+          setParamValues(nextParamValues);
+          if (equation && equation.trim() !== "") setMathInput(equation.trim());
+
+          // Calcula con los valores ya fusionados (evita problemas de timing con setState)
+          handleCalculate({
+            method,
+            equation: equation?.trim() ?? "",
+            paramValues: nextParamValues,
+          });
+        }}
       />
     </div>
   );

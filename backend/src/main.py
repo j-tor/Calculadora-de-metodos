@@ -1,7 +1,11 @@
 import uvicorn
 from fastapi import FastAPI
+from dotenv import load_dotenv
 from .routes.calculator import router as calculator_router
+from .routes.voice import router as voice_router
 from .middleware.cors import setup_cors
+
+load_dotenv()
 
 app = FastAPI(
     title="Calculadora de Métodos Numéricos API",
@@ -14,6 +18,7 @@ setup_cors(app)
 
 # Include Routes
 app.include_router(calculator_router)
+app.include_router(voice_router)
 
 @app.get("/")
 async def root():
