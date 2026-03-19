@@ -79,7 +79,7 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
             Visualización Gráfica
           </h3>
           <p className={`text-xs md:text-sm ${textSecondary} mt-1 text-left`}>
-            Gráfica de la función y proceso de convergencia
+            Gráfica de la función y proceso de convergencia 
           </p>
         </div>
         {showGraph ? (
