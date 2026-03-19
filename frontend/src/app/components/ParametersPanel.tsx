@@ -9,7 +9,7 @@ interface ParametersPanelProps {
 }
 
 // Dynamic parameters based on selected method
-const methodParameters: Record<string, Array<{ name: string; label: string; type: string; placeholder: string }>> = {
+export const methodParameters: Record<string, Array<{ name: string; label: string; type: string; placeholder: string }>> = {
   'newton': [
     { name: 'x0', label: 'Valor Inicial (x₀)', type: 'number', placeholder: '1.0' },
     { name: 'tolerance', label: 'Tolerancia (ε)', type: 'number', placeholder: '0.0001' },
@@ -101,6 +101,11 @@ const methodParameters: Record<string, Array<{ name: string; label: string; type
     { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
   ],
   'newton-divided': [
+    { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
+    { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
+    { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
+  ],
+  'cubic-spline': [
     { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
     { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
     { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
