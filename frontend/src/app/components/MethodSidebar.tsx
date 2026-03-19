@@ -99,7 +99,7 @@ export function MethodSidebar({
             </div>
             <div>
               <h2 className={`text-sm md:text-base font-bold ${textPrimary}`}>
-                NumLab
+                NewtonLab
               </h2>
               <p className={`text-xs ${textMuted}`}>Métodos Numéricos</p>
             </div>
