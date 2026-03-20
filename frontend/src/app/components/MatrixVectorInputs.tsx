@@ -181,7 +181,7 @@ export function MatrixVectorInputs({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label className={`text-sm font-medium ${textTertiary}`}>Tamaño (n×n)</label>
+        <label className={`text-sm font-medium ${textTertiary}`}>Tamaño (n)</label>
         <input
           type="number"
           min={2}

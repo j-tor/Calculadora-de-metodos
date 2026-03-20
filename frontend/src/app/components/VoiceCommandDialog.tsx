@@ -706,7 +706,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
 
   function askMatrixVoiceSize() {
     setStep('asking-param');
-    setMessage('Tamaño n×n (2 a 12), como el selector en pantalla.');
+    setMessage('Tamaño n (2 a 12), como el selector en pantalla.');
     speakText(
       '¿De cuánto es la matriz cuadrada? Di un número entre dos y doce, igual que el control de tamaño en la pantalla.',
       async () => {
@@ -810,7 +810,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       const entries = Array.from({ length: n }, () => Array(n).fill(0));
       setMatrixVoice({ kind: 'row', n, rowIndex: 0, entries });
       setStep('confirming');
-      speakText(`Entendido, matriz ${n} por ${n}.`, () => {
+      speakText(`Entendido, matriz de orden ${n}.`, () => {
         askMatrixVoiceRow(0, n, entries);
       });
       return;
@@ -1094,7 +1094,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
             <div className="space-y-2 text-left">
               <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Tamaño (como en pantalla)</p>
               <p className="text-sm text-[#94A3B8] leading-relaxed">
-                Di <span className="text-[#CBD5E1]">un número entre 2 y 12</span> para el orden n×n (igual que el selector de tamaño).
+                Di <span className="text-[#CBD5E1]">un número entre 2 y 12</span> para el orden n (igual que el selector de tamaño).
               </p>
               <p className="text-sm text-[#94A3B8]">Ej: «tres», «4», «doce».</p>
             </div>
