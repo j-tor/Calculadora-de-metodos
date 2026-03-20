@@ -7,9 +7,10 @@ interface MathInputPanelProps {
   selectedMethod: string;
   value: string;
   onChange: (value: string) => void;
+  error?: string;
 }
 
-export function MathInputPanel({ selectedMethod, value, onChange }: MathInputPanelProps) {
+export function MathInputPanel({ selectedMethod, value, onChange, error }: MathInputPanelProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -110,10 +111,16 @@ export function MathInputPanel({ selectedMethod, value, onChange }: MathInputPan
               ref={textareaRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="x**3 - 2*x - 5"
-              className={`w-full ${bgSecondary} border-2 ${borderSecondary} focus:border-[#3B82F6] rounded-xl px-4 md:px-6 py-4 md:py-5 ${textPrimary} ${placeholder} focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 transition-all resize-none text-lg md:text-xl min-h-[100px] md:min-h-[120px]`}
+              placeholder="ej. x**3 - 2*x - 5"
+              aria-invalid={!!error}
+              className={`w-full ${bgSecondary} border-2 ${error ? "border-red-500 ring-2 ring-red-500/25" : borderSecondary} focus:border-[#3B82F6] rounded-xl px-4 md:px-6 py-4 md:py-5 ${textPrimary} ${placeholder} focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 transition-all resize-none text-lg md:text-xl min-h-[100px] md:min-h-[120px]`}
               style={{ fontFamily: "JetBrains Mono, monospace" }}
             />
+            {error ? (
+              <p className="text-red-500 text-sm mt-2" role="alert">
+                {error}
+              </p>
+            ) : null}
           </div>
 
           {/* Math Keyboard */}

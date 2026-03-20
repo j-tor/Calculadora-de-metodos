@@ -1,5 +1,11 @@
 import { Settings, Play, Mic } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { MatrixVectorInputs } from './MatrixVectorInputs';
+import { methodParameters } from '../config/methodParameters';
+
+export { methodParameters };
+
+const MATRIX_METHODS = new Set(['jacobi', 'gauss-seidel', 'lu']);
 
 interface ParametersPanelProps {
   selectedMethod: string;
@@ -7,61 +13,10 @@ interface ParametersPanelProps {
   onVoiceCommand?: () => void;
   values: Record<string, string>;
   onValueChange: (name: string, value: string) => void;
+  fieldErrors?: Record<string, string>;
 }
 
-// Dynamic parameters based on selected method
-export const methodParameters: Record<string, Array<{ name: string; label: string; type: string; placeholder: string }>> = {
-  'newton': [
-    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '1.0' },
-    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
-    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
-  ],
-  'bisection': [
-    { name: 'a', label: 'Limite Inferior (a)', type: 'number', placeholder: '0' },
-    { name: 'b', label: 'Limite Superior (b)', type: 'number', placeholder: '2' },
-    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
-    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
-  ],
-  'fixed-point': [
-    { name: 'x0', label: 'Valor Inicial (x0)', type: 'number', placeholder: '1.0' },
-    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
-    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
-  ],
-  'jacobi': [
-    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
-    { name: 'vectorB', label: 'Vector b', type: 'text', placeholder: '4,5,6' },
-    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
-    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
-  ],
-  'gauss-seidel': [
-    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
-    { name: 'vectorB', label: 'Vector b', type: 'text', placeholder: '4,5,6' },
-    { name: 'tolerance', label: 'Tolerancia (eps)', type: 'number', placeholder: '0.0001' },
-    { name: 'maxIter', label: 'Iteraciones Maximas', type: 'number', placeholder: '100' },
-  ],
-  'lu': [
-    { name: 'lu_variant', label: 'Variante de LU', type: 'text', placeholder: 'doolittle o crout (por defecto doolittle)' },
-    { name: 'matrixA', label: 'Matriz A (fila;fila)', type: 'text', placeholder: '4,1,2;1,3,1;2,1,3' },
-    { name: 'vectorB', label: 'Vector b (Opcional)', type: 'text', placeholder: '4,5,6' },
-  ],
-  'lagrange': [
-    { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
-    { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
-    { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
-  ],
-  'newton-divided': [
-    { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
-    { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
-    { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
-  ],
-  'cubic-spline': [
-    { name: 'x_values_str', label: 'Valores x (separados por coma)', type: 'text', placeholder: '1, 2, 3, 4' },
-    { name: 'y_values_str', label: 'Valores y (separados por coma)', type: 'text', placeholder: '0.5, 0.8, 0.9, 1.2' },
-    { name: 'x_eval', label: 'Valor a Evaluar (x)', type: 'number', placeholder: '2.5' },
-  ],
-};
-
-export function ParametersPanel({ selectedMethod, onCalculate, onVoiceCommand, values, onValueChange }: ParametersPanelProps) {
+export function ParametersPanel({ selectedMethod, onCalculate, onVoiceCommand, values, onValueChange, fieldErrors }: ParametersPanelProps) {
   const parameters = methodParameters[selectedMethod] || methodParameters['newton'];
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -93,22 +48,52 @@ export function ParametersPanel({ selectedMethod, onCalculate, onVoiceCommand, v
       </div>
 
       <div className="p-6 space-y-4">
-        {parameters.map((param, idx) => (
-          <div key={idx}>
-            <label className={`block text-sm font-medium ${textTertiary} mb-2`}>
-              {param.label}
-            </label>
-            <input
-              type={param.type}
-              placeholder={param.placeholder}
-              value={values[param.name] ?? ''}
-              onChange={(e) => onValueChange(param.name, e.target.value)}
-              step={param.type === 'number' ? '0.0001' : undefined}
-              className={`w-full ${bgSecondary} border ${borderSecondary} rounded-lg px-4 py-3 ${textPrimary} ${placeholder} focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20 transition-all`}
-              style={{ fontFamily: 'JetBrains Mono, monospace' }}
-            />
-          </div>
-        ))}
+        {parameters.map((param, idx) => {
+          if (MATRIX_METHODS.has(selectedMethod) && param.name === 'matrixA') {
+            return (
+              <div key="matrix-vector-editor">
+                <label className={`block text-sm font-medium ${textTertiary} mb-2`}>
+                  Matriz A y vector b
+                </label>
+                <MatrixVectorInputs
+                  matrixStr={values.matrixA ?? ''}
+                  vectorStr={values.vectorB ?? ''}
+                  onMatrixChange={(s) => onValueChange('matrixA', s)}
+                  onVectorChange={(s) => onValueChange('vectorB', s)}
+                  optionalVector={selectedMethod === 'lu'}
+                  matrixError={fieldErrors?.matrixA}
+                  vectorError={fieldErrors?.vectorB}
+                />
+              </div>
+            );
+          }
+          if (MATRIX_METHODS.has(selectedMethod) && param.name === 'vectorB') {
+            return null;
+          }
+          const err = fieldErrors?.[param.name];
+          return (
+            <div key={idx}>
+              <label className={`block text-sm font-medium ${textTertiary} mb-2`}>
+                {param.label}
+              </label>
+              <input
+                type={param.type}
+                placeholder={param.placeholder}
+                value={values[param.name] ?? ''}
+                onChange={(e) => onValueChange(param.name, e.target.value)}
+                step={param.type === 'number' ? '0.0001' : undefined}
+                aria-invalid={!!err}
+                className={`w-full ${bgSecondary} border ${err ? 'border-red-500 ring-2 ring-red-500/25' : borderSecondary} rounded-lg px-4 py-3 ${textPrimary} ${placeholder} focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20 transition-all`}
+                style={{ fontFamily: 'JetBrains Mono, monospace' }}
+              />
+              {err ? (
+                <p className="text-red-500 text-xs mt-1.5" role="alert">
+                  {err}
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
 
         {/* Calculate and Voice Buttons */}
         <div className="flex gap-3 mt-6">

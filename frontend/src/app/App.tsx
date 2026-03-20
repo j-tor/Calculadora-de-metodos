@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { validateCalculatorInput } from "./utils/fieldValidation";
 import { MethodSidebar } from "./components/MethodSidebar";
 import { TopBar } from "./components/TopBar";
 import { MathInputPanel } from "./components/MathInputPanel";
@@ -16,6 +17,7 @@ function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [mathInput, setMathInput] = useState("");
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [apiResult, setApiResult] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +48,19 @@ function AppContent() {
     const backendMethod = METHOD_TO_BACKEND[methodToUse] ?? methodToUse;
     const equationToUse = overrides?.equation ?? mathInput;
     const paramValuesToUse = overrides?.paramValues ?? paramValues;
+
+    const validation = validateCalculatorInput(
+      methodToUse,
+      paramValuesToUse,
+      equationToUse
+    );
+    if (!validation.valid) {
+      setFieldErrors(validation.errors);
+      const msg = Object.values(validation.errors)[0];
+      setApiError(msg ?? "Revisa los campos marcados");
+      return;
+    }
+    setFieldErrors({});
 
     const payload: Record<string, any> = { method: backendMethod };
 
@@ -101,6 +116,24 @@ function AppContent() {
 
   const handleParamChange = (name: string, value: string) => {
     setParamValues((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      if (name === "matrixA" || name === "vectorB") {
+        delete next.matrixA;
+        delete next.vectorB;
+      }
+      return next;
+    });
+  };
+
+  const handleMathInputChange = (value: string) => {
+    setMathInput(value);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.equation;
+      return next;
+    });
   };
 
   const handleVoiceCommand = () => {
@@ -206,7 +239,8 @@ function AppContent() {
                     <MathInputPanel
                       selectedMethod={selectedMethod}
                       value={mathInput}
-                      onChange={setMathInput}
+                      onChange={handleMathInputChange}
+                      error={fieldErrors.equation}
                     />
                   </div>
                 )}
@@ -218,6 +252,7 @@ function AppContent() {
                     onVoiceCommand={handleVoiceCommand}
                     values={paramValues}
                     onValueChange={handleParamChange}
+                    fieldErrors={fieldErrors}
                   />
                 </div>
               </div>

@@ -72,6 +72,116 @@ function normalizeText(text: string) {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
+function serializeMatrixGrid(entries: number[][]): string {
+  return entries.map((row) => row.map((x) => String(x)).join(',')).join(';');
+}
+
+const WORDS_TO_NUM: Record<string, string> = {
+  cero: '0',
+  uno: '1',
+  dos: '2',
+  tres: '3',
+  cuatro: '4',
+  cinco: '5',
+  seis: '6',
+  siete: '7',
+  ocho: '8',
+  nueve: '9',
+  diez: '10',
+  once: '11',
+  doce: '12',
+  trece: '13',
+  catorce: '14',
+  quince: '15',
+  dieciseis: '16',
+  diecisiete: '17',
+  dieciocho: '18',
+  diecinueve: '19',
+  veinte: '20',
+  menos: '-',
+  negativo: '-',
+};
+
+function parseVoiceNumber(rawText: string): number | null {
+  let numeric = rawText
+    .replace(/\s+/g, '')
+    .replace(/coma/g, '.')
+    .replace(/punto/g, '.');
+
+  numeric = numeric.replace(/\bexponencial\b/gi, 'e');
+  numeric = numeric.replace(/\bE\b/g, 'E');
+
+  let lower = numeric.toLowerCase();
+  for (const [w, n] of Object.entries(WORDS_TO_NUM)) {
+    lower = lower.replace(new RegExp(w, 'g'), n);
+  }
+  numeric = lower;
+
+  const numberMatch = numeric.match(/-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/);
+  if (numberMatch) numeric = numberMatch[0];
+
+  numeric = numeric.replace(/,$/g, '.').replace(/\.$/g, '');
+  if (numeric.startsWith('.')) numeric = `0${numeric}`;
+  if (numeric.startsWith('-.')) numeric = `-0${numeric.slice(1)}`;
+
+  if (!numeric || Number.isNaN(parseFloat(numeric))) return null;
+  return parseFloat(numeric);
+}
+
+function parseVoiceSizeN(rawText: string): number | null {
+  const v = parseVoiceNumber(rawText);
+  if (v !== null) {
+    const n = Math.round(v);
+    if (n >= 2 && n <= 12 && Math.abs(v - n) < 1e-6) return n;
+  }
+  const m = rawText.match(/\b(1[0-2]|[2-9])\b/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (n >= 2 && n <= 12) return n;
+  }
+  return null;
+}
+
+/** Una fila o un vector: separadores coma/punto y coma, luego «y» en cada trozo; corchetes opcionales. */
+function parseMatrixRowVoice(rawText: string, expectedCount: number): number[] | null {
+  let t = rawText.trim();
+  t = t.replace(/[\[\]]/g, ' ');
+  t = t.replace(/\bcoma\b/gi, ',');
+  t = t.replace(/\s+/g, ' ');
+
+  const segments = t.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const parts: string[] = [];
+  for (const seg of segments) {
+    const sub = seg.split(/\s+y\s+/i).map((s) => s.trim()).filter(Boolean);
+    parts.push(...sub);
+  }
+
+  if (parts.length === expectedCount) {
+    const parsed = parts.map((p) => parseVoiceNumber(p));
+    if (parsed.every((x) => x !== null)) return parsed as number[];
+  }
+
+  const re = /-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/g;
+  const matches = t.match(re);
+  if (matches && matches.length === expectedCount) {
+    return matches.map((m) => parseFloat(m));
+  }
+
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length === expectedCount) {
+    const parsed = words.map((w) => parseVoiceNumber(w));
+    if (parsed.every((x) => x !== null)) return parsed as number[];
+  }
+
+  return null;
+}
+
+type MatrixVoiceState =
+  | null
+  | { kind: 'size' }
+  | { kind: 'row'; n: number; rowIndex: number; entries: number[][] }
+  | { kind: 'vector'; n: number; entries: number[][] };
+
 function equationToPythonSyntax(raw: string) {
   let s = raw.trim();
 
@@ -151,6 +261,8 @@ const METHODS_REQUIRE_EQUATION = new Set([
   'fixed-point',
 ]);
 
+const MATRIX_VOICE_METHODS = new Set(['jacobi', 'gauss-seidel', 'lu']);
+
 export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommandDialogProps) {
   const [step, setStep] = useState<Step>('idle');
   const [message, setMessage] = useState('');
@@ -160,6 +272,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
   const [collectedParams, setCollectedParams] = useState<Record<string, string>>({});
   const [equation, setEquation] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [matrixVoice, setMatrixVoice] = useState<MatrixVoiceState>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -175,6 +288,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
   const flowIdRef = useRef(0);
   const speechIdRef = useRef(0);
   const recordingIdRef = useRef(0);
+  const matrixVoiceStartIdxRef = useRef(0);
 
   // Keep a ref to the latest state to avoid stale closures in recognition.onresult
   const stateRef = useRef({
@@ -184,6 +298,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     currentParamIdx,
     collectedParams,
     equation,
+    matrixVoice,
   });
 
   useEffect(() => {
@@ -194,8 +309,9 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       currentParamIdx,
       collectedParams,
       equation,
+      matrixVoice,
     };
-  }, [step, currentMethod, paramsList, currentParamIdx, collectedParams, equation]);
+  }, [step, currentMethod, paramsList, currentParamIdx, collectedParams, equation, matrixVoice]);
 
   useEffect(() => {
     if (isOpen) {
@@ -270,6 +386,7 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       window.clearTimeout(startFlowTimerRef.current);
       startFlowTimerRef.current = null;
     }
+    setMatrixVoice(null);
   };
 
   const speakText = (text: string, callback?: () => void) => {
@@ -448,6 +565,8 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
         if (flowId !== flowIdRef.current) return;
         if (stateRef.current.currentMethod == null) {
           startFlow(flowId);
+        } else if (stateRef.current.matrixVoice) {
+          retryMatrixVoice();
         } else {
           askCurrentParam();
         }
@@ -467,6 +586,10 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
       processEquationInput(transcript);
     } else if (currentState.step === 'listening-param') {
       setStep('processing');
+      if (currentState.matrixVoice) {
+        processMatrixVoiceInput(normalized, transcript);
+        return;
+      }
       processParamInput(normalized, transcript, currentState);
     }
   };
@@ -581,6 +704,169 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     askParam(stateRef.current.currentParamIdx, stateRef.current.paramsList);
   };
 
+  function askMatrixVoiceSize() {
+    setStep('asking-param');
+    setMessage('Tamaño n×n (2 a 12), como el selector en pantalla.');
+    speakText(
+      '¿De cuánto es la matriz cuadrada? Di un número entre dos y doce, igual que el control de tamaño en la pantalla.',
+      async () => {
+        setStep('listening-param');
+        setMessage('Te escucho. Cuando termines, presiona "Detener".');
+        try {
+          const transcript = await startRecording();
+          handleSpeechResult(transcript);
+        } catch (error) {
+          console.error('Recording error:', error);
+          handleError();
+        }
+      }
+    );
+  }
+
+  function askMatrixVoiceRow(rowIndex: number, n: number, entries: number[][]) {
+    setMatrixVoice({ kind: 'row', n, rowIndex, entries });
+    setStep('asking-param');
+    const ri = rowIndex + 1;
+    setMessage(`Matriz A — fila ${ri} (${n} números)`);
+    speakText(
+      `Fila ${ri}. Dicta los ${n} números de esa fila: puedes separarlos con coma, con «y», o entre corchetes, por ejemplo: 4 coma 1 coma 2, o 4 y 1 y 2.`,
+      async () => {
+        setStep('listening-param');
+        setMessage('Te escucho...');
+        try {
+          const transcript = await startRecording();
+          handleSpeechResult(transcript);
+        } catch (error) {
+          console.error('Recording error:', error);
+          handleError();
+        }
+      }
+    );
+  }
+
+  function askMatrixVoiceVector(n: number, entries: number[][]) {
+    setMatrixVoice({ kind: 'vector', n, entries });
+    setStep('asking-param');
+    const method = stateRef.current.currentMethod;
+    const isLu = method === 'lu';
+    setMessage(`Vector b (${n} términos)`);
+    speakText(
+      isLu
+        ? 'Vector b: di los términos separados por coma o por «y», o entre corchetes. O di omitir si solo quieres L y U.'
+        : `Di los ${n} términos del vector b: coma, «y», o corchetes.`,
+      async () => {
+        setStep('listening-param');
+        setMessage('Te escucho...');
+        try {
+          const transcript = await startRecording();
+          handleSpeechResult(transcript);
+        } catch (error) {
+          console.error('Recording error:', error);
+          handleError();
+        }
+      }
+    );
+  }
+
+  function finishMatrixVoice(entries: number[][], b: number[] | null, vectorSkipped: boolean) {
+    const matrixStr = serializeMatrixGrid(entries);
+    const vectorStr = vectorSkipped ? '' : b!.map(String).join(',');
+    const idx = matrixVoiceStartIdxRef.current;
+    setMatrixVoice(null);
+    setCollectedParams((prev) => ({ ...prev, matrixA: matrixStr, vectorB: vectorStr }));
+    const nextIdx = idx + 2;
+    setCurrentParamIdx(nextIdx);
+    setStep('confirming');
+    setMessage('Matriz y vector listos.');
+    speakText('Matriz y vector listos.', () => {
+      askParam(nextIdx, stateRef.current.paramsList);
+    });
+  }
+
+  function retryMatrixVoice() {
+    const mv = stateRef.current.matrixVoice;
+    if (!mv) {
+      askCurrentParam();
+      return;
+    }
+    if (mv.kind === 'size') askMatrixVoiceSize();
+    else if (mv.kind === 'row') askMatrixVoiceRow(mv.rowIndex, mv.n, mv.entries);
+    else askMatrixVoiceVector(mv.n, mv.entries);
+  }
+
+  function processMatrixVoiceInput(normText: string, rawText: string) {
+    const mv = stateRef.current.matrixVoice;
+    if (!mv) return;
+
+    if (mv.kind === 'size') {
+      const n = parseVoiceSizeN(rawText);
+      if (n === null) {
+        setStep('asking-param');
+        speakText('No entendí el tamaño. Di un número entre dos y doce.', () => {
+          askMatrixVoiceSize();
+        });
+        return;
+      }
+      const entries = Array.from({ length: n }, () => Array(n).fill(0));
+      setMatrixVoice({ kind: 'row', n, rowIndex: 0, entries });
+      setStep('confirming');
+      speakText(`Entendido, matriz ${n} por ${n}.`, () => {
+        askMatrixVoiceRow(0, n, entries);
+      });
+      return;
+    }
+
+    if (mv.kind === 'row') {
+      const row = parseMatrixRowVoice(rawText, mv.n);
+      if (row === null) {
+        speakText(`Necesito ${mv.n} números en esta fila. Repite.`, () => {
+          askMatrixVoiceRow(mv.rowIndex, mv.n, mv.entries);
+        });
+        return;
+      }
+      const next = mv.entries.map((r) => r.slice());
+      next[mv.rowIndex] = row;
+      const { n, rowIndex } = mv;
+      if (rowIndex < n - 1) {
+        const ri = rowIndex + 1;
+        setMatrixVoice({ kind: 'row', n, rowIndex: ri, entries: next });
+        setStep('confirming');
+        speakText('Fila registrada.', () => {
+          askMatrixVoiceRow(ri, n, next);
+        });
+        return;
+      }
+      setMatrixVoice({ kind: 'vector', n, entries: next });
+      setStep('confirming');
+      speakText('Matriz completa.', () => {
+        askMatrixVoiceVector(n, next);
+      });
+      return;
+    }
+
+    if (mv.kind === 'vector') {
+      const method = stateRef.current.currentMethod;
+      const isLu = method === 'lu';
+      if (
+        isLu &&
+        /\b(omitir|omit|saltar|skip|ninguno|sin\s+vector|solo\s+lu|no\s+quiero|no\s+hace\s+falta)\b/i.test(
+          normText
+        )
+      ) {
+        finishMatrixVoice(mv.entries, null, true);
+        return;
+      }
+      const b = parseMatrixRowVoice(rawText, mv.n);
+      if (b === null) {
+        speakText('No pude leer el vector. Repite con los mismos separadores.', () => {
+          askMatrixVoiceVector(mv.n, mv.entries);
+        });
+        return;
+      }
+      finishMatrixVoice(mv.entries, b, false);
+    }
+  }
+
   const askParam = (idx: number, params: any[]) => {
     if (idx >= params.length) {
       finishFlow(stateRef.current.currentMethod!, stateRef.current.collectedParams);
@@ -588,33 +874,30 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     }
     
     const param = params[idx];
-    setStep('asking-param');
     const methodToUse = stateRef.current.currentMethod;
+    const isMatrixMethod = methodToUse != null && MATRIX_VOICE_METHODS.has(methodToUse);
+    if (param?.name === 'matrixA' && isMatrixMethod) {
+      matrixVoiceStartIdxRef.current = idx;
+      setMatrixVoice({ kind: 'size' });
+      askMatrixVoiceSize();
+      return;
+    }
+
+    setStep('asking-param');
     const isInterpolationXEval =
       (methodToUse === 'lagrange' ||
         methodToUse === 'newton-divided' ||
         methodToUse === 'cubic-spline') &&
       param?.name === 'x_eval';
 
-    const isLuMatrixA = methodToUse === 'lu' && param?.name === 'matrixA';
-    const isLuVectorB = methodToUse === 'lu' && param?.name === 'vectorB';
-
     setMessage(
       isInterpolationXEval
         ? '¿En qué valor de x deseas evaluar la interpolación?'
-        : isLuMatrixA
-        ? 'Dime la matriz A. Usa “coma” entre números y “punto y coma” entre filas. Debe ser cuadrada.'
-        : isLuVectorB
-        ? 'Dime el vector b. Usa “coma” entre números.'
         : `Por favor dime el valor para: ${param.label}`
     );
-    
+
     const promptText = isInterpolationXEval
       ? '¿En qué valor de x deseas evaluar la interpolación?'
-      : isLuMatrixA
-      ? 'Ejemplo matriz (3 por 3): “4 coma 1 coma 2, punto y coma 1 coma 3 coma 1, punto y coma 2 coma 1 coma 3”.'
-      : isLuVectorB
-      ? 'Ejemplo vector b: “4 coma 5 coma 6”.'
       : `Por favor, dime el valor de ${param.label.split('(')[0].trim()}`;
     speakText(promptText, async () => {
       setStep('listening-param');
@@ -637,105 +920,14 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     let isValid = true;
     
     if (param.type === 'number') {
-      // Clean up the text for number parsing
-      let numeric = rawText
-        .replace(/\s+/g, '')
-        .replace(/coma/g, '.')
-        .replace(/punto/g, '.');
-
-      // Allow scientific notation helpers in Spanish STT
-      numeric = numeric.replace(/\bexponencial\b/gi, 'e');
-      // e may appear as standalone token; keep it, but we only parse it later
-      numeric = numeric.replace(/\bE\b/g, 'E');
-      
-      // Word to number mapping (Spanish)
-      const wordsToNum: Record<string, string> = {
-        'cero': '0', 'uno': '1', 'dos': '2', 'tres': '3', 'cuatro': '4',
-        'cinco': '5', 'seis': '6', 'siete': '7', 'ocho': '8', 'nueve': '9',
-        'diez': '10', 'once': '11', 'doce': '12', 'trece': '13', 'catorce': '14',
-        'quince': '15', 'dieciseis': '16', 'diecisiete': '17', 'dieciocho': '18',
-        'diecinueve': '19', 'veinte': '20', 'menos': '-', 'negativo': '-'
-      };
-      
-      for (const [w, n] of Object.entries(wordsToNum)) {
-        numeric = numeric.toLowerCase().replace(new RegExp(w, 'g'), n);
-      }
-      
-      // Extract number (including decimals and negatives)
-      // Also allow scientific notation: 1e-6, 2E3
-      const numberMatch = numeric.match(/-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/);
-      if (numberMatch) numeric = numberMatch[0];
-
-      // Normalize common STT artifacts like trailing dots: "1." -> "1"
-      numeric = numeric.replace(/,$/g, '.').replace(/\.$/g, '');
-      if (numeric.startsWith('.')) numeric = `0${numeric}`;
-      if (numeric.startsWith('-.')) numeric = `-0${numeric.slice(1)}`;
-      
-      if (numeric && !isNaN(parseFloat(numeric))) {
-        parsedValue = numeric;
+      const v = parseVoiceNumber(rawText);
+      if (v !== null) {
+        parsedValue = String(v);
       } else {
         isValid = false;
       }
     } else if (param.type === 'text') {
-      // Normalización para matrices/vectores (LU), porque el backend espera:
-      // - matrixA: filas separadas por ';' y valores por ','
-      // - vectorB: valores separados por ','
-      if (param.name === 'matrixA') {
-        let t = normText;
-        t = t.replace(/\bpunto\s+y\s+coma\b/gi, ';');
-        t = t.replace(/\bcoma\b/gi, ',');
-        t = t.replace(/\bmenos\b/gi, '-');
-        t = t.replace(/\s+/g, ' ').trim();
-
-        // Poner comas entre números cuando el STT los separa por espacios
-        t = t.replace(
-          /(-?\d+(?:\.\d+)?)\s+(?=-?\d+(?:\.\d+)?)/g,
-          '$1,'
-        );
-
-        // Limpiar espacios alrededor de separadores
-        t = t.replace(/\s*;\s*/g, ';').replace(/\s*,\s*/g, ',');
-        parsedValue = t;
-
-        // Validación simple: filas separadas por ';' y números separados por ','
-        const number = '-?\\d+(?:\\.\\d+)?';
-        const rowRe = new RegExp(`^${number}(,${number})*$`);
-        const rows = t.split(';').map((r) => r.trim()).filter(Boolean);
-        if (rows.length < 1) isValid = false;
-        else {
-          const colCount = rows[0].split(',').filter(Boolean).length;
-          for (const r of rows) {
-            if (!rowRe.test(r)) {
-              isValid = false;
-              break;
-            }
-            const cols = r.split(',').filter(Boolean).length;
-            if (cols !== colCount) {
-              isValid = false;
-              break;
-            }
-          }
-          // Para LU/Jacobi/Gauss-Seidel A debe ser cuadrada
-          if (isValid && rows.length !== colCount) isValid = false;
-        }
-      } else if (param.name === 'vectorB') {
-        let t = normText;
-        t = t.replace(/\bcoma\b/gi, ',');
-        t = t.replace(/\bmenos\b/gi, '-');
-        t = t.replace(/\s+/g, ' ').trim();
-
-        t = t.replace(
-          /(-?\d+(?:\.\d+)?)\s+(?=-?\d+(?:\.\d+)?)/g,
-          '$1,'
-        );
-        t = t.replace(/\s*,\s*/g, ',');
-        parsedValue = t;
-
-        // Validación simple: lista de números separados por ','
-        const number = '-?\\d+(?:\\.\\d+)?';
-        const vecRe = new RegExp(`^${number}(,${number})*$`);
-        if (!vecRe.test(t)) isValid = false;
-      }
+      parsedValue = rawText.trim();
     }
 
     if (!isValid) {
@@ -751,8 +943,12 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
     setCollectedParams(newCollected);
     
     setStep('confirming');
-    setMessage(`Entendido: ${parsedValue}`);
-    speakText(`Entendido, ${parsedValue}.`, () => {
+    const display =
+      param.name === 'vectorB' && parsedValue === ''
+        ? '(sin vector b)'
+        : parsedValue;
+    setMessage(`Entendido: ${display}`);
+    speakText(`Entendido, ${display}.`, () => {
       const nextIdx = state.currentParamIdx + 1;
       setCurrentParamIdx(nextIdx);
       askParam(nextIdx, state.paramsList);
@@ -770,13 +966,18 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
 
   if (!isOpen) return null;
 
+  const activeParam = paramsList[currentParamIdx];
+  const voiceMatrixMode =
+    currentMethod != null &&
+    MATRIX_VOICE_METHODS.has(currentMethod) &&
+    (step === 'listening-param' || step === 'asking-param');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4"
+        className="bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4"
       >
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -882,17 +1083,47 @@ export function VoiceCommandDialog({ isOpen, onClose, onComplete }: VoiceCommand
             <div>
               <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">Ejemplo:</p>
               <p className="text-sm text-[#94A3B8]">"Quiero usar el método de bisección"</p>
-              <p className="text-sm text-[#94A3B8] mt-1">"Trazador Cúbico"</p>
+              <p className="text-sm text-[#94A3B8] mt-1">"Jacobi" · "Gauss Seidel" · "LU" · "Trazador Cúbico"</p>
             </div>
           ) : step === 'listening-equation' ? (
             <div>
               <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">Ecuación:</p>
               <p className="text-sm text-[#94A3B8]">Ej: "x**3 - 2*x - 5"</p>
             </div>
-          ) : step === 'listening-param' ? (
+          ) : voiceMatrixMode && matrixVoice?.kind === 'size' ? (
+            <div className="space-y-2 text-left">
+              <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Tamaño (como en pantalla)</p>
+              <p className="text-sm text-[#94A3B8] leading-relaxed">
+                Di <span className="text-[#CBD5E1]">un número entre 2 y 12</span> para el orden n×n (igual que el selector de tamaño).
+              </p>
+              <p className="text-sm text-[#94A3B8]">Ej: «tres», «4», «doce».</p>
+            </div>
+          ) : voiceMatrixMode && matrixVoice?.kind === 'row' ? (
+            <div className="space-y-2 text-left">
+              <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Fila completa</p>
+              <p className="text-sm text-[#94A3B8] leading-relaxed">
+                Fila {matrixVoice.rowIndex + 1}: di los {matrixVoice.n} números. Separadores: <span className="text-[#CBD5E1]">coma</span>,{' '}
+                <span className="text-[#CBD5E1]">«y»</span>, o <span className="text-[#CBD5E1]">[ ]</span>. Ej: «4, 1, 2» o «4 y 1 y 2».
+              </p>
+            </div>
+          ) : voiceMatrixMode && matrixVoice?.kind === 'vector' ? (
+            <div className="space-y-2 text-left">
+              <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Vector b de una vez</p>
+              <p className="text-sm text-[#94A3B8] leading-relaxed">
+                Los {matrixVoice.n} términos con coma, «y» o corchetes.
+              </p>
+              {currentMethod === 'lu' ? (
+                <p className="text-xs text-[#64748B]">Solo LU: «omitir» si no quieres b.</p>
+              ) : null}
+            </div>
+          ) : step === 'listening-param' || step === 'asking-param' ? (
             <div>
               <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">Responde con el valor:</p>
-              <p className="text-sm text-[#94A3B8]">Ej: "Cinco" o "Uno punto dos" o "-0.5"</p>
+              <p className="text-sm text-[#94A3B8]">
+                {activeParam?.name === 'tolerance'
+                  ? 'Ej: "1e-4", "0.0001" o "un punto cero cero cero uno"'
+                  : 'Ej: "Cinco" o "Uno punto dos" o "-0.5"'}
+              </p>
             </div>
           ) : step === 'processing' ? (
             <div className="flex items-center justify-center h-full">
