@@ -1,7 +1,8 @@
 import { methodParameters } from "../config/methodParameters";
 
-const EQUATION_METHODS = new Set(["newton", "bisection", "fixed-point"]);
+const EQUATION_METHODS = new Set(["newton", "bisection", "fixed-point", "euler", "verlet", "rk4"]);
 const MATRIX_METHODS = new Set(["jacobi", "gauss-seidel", "lu"]);
+const EDO_METHODS = new Set(["euler", "verlet", "rk4"]);
 
 function parseMatrix(s: string | undefined): number[][] | null {
   if (!s?.trim()) return null;
@@ -82,7 +83,8 @@ export function validateCalculatorInput(
   const errors: Record<string, string> = {};
 
   if (EQUATION_METHODS.has(method) && !equation.trim()) {
-    errors.equation = "Ingrese la función f(x)";
+    const isEdo = EDO_METHODS.has(method);
+    errors.equation = isEdo ? "Ingrese la ecuación diferencial dy/dx = f(x,y)" : "Ingrese la función f(x)";
   }
 
   const params = methodParameters[method] || methodParameters["newton"];

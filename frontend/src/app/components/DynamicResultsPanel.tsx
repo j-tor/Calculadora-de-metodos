@@ -46,11 +46,30 @@ interface DynamicResultsPanelProps {
 const INTERPOLATION_METHODS = ["lagrange", "newton-divided", "cubic-spline"];
 const ROOT_METHODS = ["bisection", "newton", "fixed-point"];
 const MATRIX_SOLVER_METHODS = ["jacobi", "gauss-seidel"];
+const ODE_METHODS = ["euler", "verlet", "rk4"];
 
 const getDisplayResults = (method: string, data: CalculationResponse | null) => {
   if (!data) return [];
 
   const results = [];
+
+  if (ODE_METHODS.includes(method) && data.result !== undefined && data.result !== null) {
+    results.push({
+      label: "Valor final y(x_end)",
+      value: data.result.toFixed(8),
+      icon: CheckCircle2,
+      color: "cyan",
+    });
+    if (data.x_values) {
+      results.push({
+        label: "Pasos calculados",
+        value: (data.x_values.length - 1).toString(),
+        icon: Hash,
+        color: "blue",
+      });
+    }
+    return results;
+  }
 
   if (ROOT_METHODS.includes(method) && data.result !== undefined && data.result !== null) {
     results.push({
@@ -221,6 +240,7 @@ export function DynamicResultsPanel({
   const results = getDisplayResults(selectedMethod, apiResult);
   const isInterpolationMethod = INTERPOLATION_METHODS.includes(selectedMethod);
   const isRootMethod = ROOT_METHODS.includes(selectedMethod);
+  const isOdeMethod = ODE_METHODS.includes(selectedMethod);
   const matrixSolverConverged =
     MATRIX_SOLVER_METHODS.includes(selectedMethod) &&
     (apiResult?.converged ?? apiResult?.converges) != null
@@ -232,6 +252,14 @@ export function DynamicResultsPanel({
     fxi: apiResult.y_values ? apiResult.y_values[idx] : 0,
     error: apiResult?.errors?.[idx] ?? 0,
   })) : [];
+  const odeSteps = isOdeMethod && apiResult.x_values && apiResult.y_values
+    ? apiResult.x_values.map((xi, idx) => ({
+        step: idx,
+        x: xi,
+        y: (apiResult.y_values as number[])[idx],
+        v: apiResult.v_values ? (apiResult.v_values as number[])[idx] : undefined,
+      }))
+    : [];
   const points = (apiResult.x_values && apiResult.y_values)
     ? apiResult.x_values.map((x, idx) => ({ x, y: apiResult.y_values?.[idx] }))
     : [];
@@ -473,6 +501,63 @@ export function DynamicResultsPanel({
                       <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm`} style={{ fontFamily: "JetBrains Mono, monospace" }}>
                         <span style={{ color: row.error < 0.02 ? (isDark ? "#22D3EE" : "#0891B2") : (isDark ? "#94A3B8" : "#475569") }}>{row.error.toFixed(4)}</span>
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isOdeMethod && odeSteps.length > 0 && (
+        <div className={`${bgPrimary} rounded-xl border ${border} shadow-2xl overflow-hidden`}>
+          <button
+            onClick={() => setShowTable(!showTable)}
+            className={`w-full bg-gradient-to-r ${bgGradient} px-4 md:px-6 py-3 md:py-4 border-b ${borderSecondary} flex items-center justify-between ${bgHover} transition-all`}
+          >
+            <div>
+              <h3 className={`text-sm md:text-base font-semibold ${textPrimary} text-left`}>Tabla de Solución</h3>
+              <p className={`text-xs md:text-sm ${textSecondary} mt-1 text-left`}>{odeSteps.length} pasos computados</p>
+            </div>
+            {showTable ? (
+              <ChevronUp className={`w-5 h-5 ${textSecondary} flex-shrink-0`} />
+            ) : (
+              <ChevronDown className={`w-5 h-5 ${textSecondary} flex-shrink-0`} />
+            )}
+          </button>
+
+          {showTable && (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className={bgTableRow}>
+                  <tr>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>Paso</th>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>x</th>
+                    <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>y(x)</th>
+                    {selectedMethod === "verlet" && (
+                      <th className={`px-3 md:px-6 py-2 md:py-3 text-left text-xs font-semibold ${textMuted} uppercase tracking-wider`}>v(x)</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${isDark ? "divide-[#1E293B]" : "divide-[#E2E8F0]"}`}>
+                  {odeSteps.map((row, idx) => (
+                    <tr
+                      key={row.step}
+                      className={`transition-colors ${
+                        idx === odeSteps.length - 1
+                          ? isDark
+                            ? "bg-gradient-to-r from-[#22D3EE]/10 to-transparent"
+                            : "bg-gradient-to-r from-[#0891B2]/10 to-transparent"
+                          : bgTableHover
+                      }`}
+                    >
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm font-medium ${textTertiary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{row.step}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(row.x).toFixed(6)}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{Number(row.y).toFixed(8)}</td>
+                      {selectedMethod === "verlet" && (
+                        <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm ${textSecondary}`} style={{ fontFamily: "JetBrains Mono, monospace" }}>{row.v !== undefined ? Number(row.v).toFixed(8) : "—"}</td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

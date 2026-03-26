@@ -98,10 +98,14 @@ export function MathInputPanel({ selectedMethod, value, onChange, error }: MathI
           {/* Function Label */}
           <div className="mb-3 flex items-center gap-2">
             <span
-              className={`${textTertiary} font-medium text-base md:text-lg`}
+              className={`${textTertiary} font-medium text-base md:text-lg whitespace-nowrap`}
               style={{ fontFamily: "JetBrains Mono, monospace" }}
             >
-              f(x) =
+              {(() => {
+                if (["euler", "rk2", "rk4"].includes(selectedMethod)) return "dy/dx =";
+                if (selectedMethod === "verlet") return "d²y/dx² =";
+                return "f(x) =";
+              })()}
             </span>
           </div>
 
@@ -111,7 +115,11 @@ export function MathInputPanel({ selectedMethod, value, onChange, error }: MathI
               ref={textareaRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="ej. x**3 - 2*x - 5"
+              placeholder={(() => {
+                if (["euler", "rk2", "rk4"].includes(selectedMethod)) return "ej. y - x";
+                if (selectedMethod === "verlet") return "ej. -y";
+                return "ej. x**2 - 4*x + 4";
+              })()}
               aria-invalid={!!error}
               className={`w-full ${bgSecondary} border-2 ${error ? "border-red-500 ring-2 ring-red-500/25" : borderSecondary} focus:border-[#3B82F6] rounded-xl px-4 md:px-6 py-4 md:py-5 ${textPrimary} ${placeholder} focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 transition-all resize-none text-lg md:text-xl min-h-[100px] md:min-h-[120px]`}
               style={{ fontFamily: "JetBrains Mono, monospace" }}

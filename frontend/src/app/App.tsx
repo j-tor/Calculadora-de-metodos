@@ -35,6 +35,9 @@ function AppContent() {
     "lagrange": "lagrange",
     "newton-divided": "newton-divided",
     "cubic-spline": "cubic-spline",
+    "euler": "euler",
+    "verlet": "verlet",
+    "rk4": "rk4",
   };
 
   const handleCalculate = async (overrides?: {

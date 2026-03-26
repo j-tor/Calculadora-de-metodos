@@ -54,4 +54,23 @@ export const methodParameters: Record<string, ParamDef[]> = {
     { name: "y_values_str", label: "Valores y (separados por coma)", type: "text", placeholder: "ej. 0.5, 1, 2.718, 3" },
     { name: "x_eval", label: "Valor a Evaluar (x)", type: "number", placeholder: "ej. 1.5" },
   ],
+  euler: [
+    { name: "x0", label: "Valor inicial x₀", type: "number", placeholder: "ej. 0" },
+    { name: "y0", label: "Condición inicial y(x₀)", type: "number", placeholder: "ej. 1" },
+    { name: "h", label: "Tamaño de paso (h)", type: "number", placeholder: "ej. 0.1" },
+    { name: "x_end", label: "Valor final x_end", type: "number", placeholder: "ej. 2" },
+  ],
+  verlet: [
+    { name: "x0", label: "Tiempo inicial x₀", type: "number", placeholder: "ej. 0" },
+    { name: "y0", label: "Posición inicial y₀", type: "number", placeholder: "ej. 1" },
+    { name: "v0", label: "Velocidad inicial v₀", type: "number", placeholder: "ej. 0" },
+    { name: "h", label: "Tamaño de paso (h)", type: "number", placeholder: "ej. 0.1" },
+    { name: "x_end", label: "Tiempo final x_end", type: "number", placeholder: "ej. 5" },
+  ],
+  rk4: [
+    { name: "x0", label: "Valor inicial x₀", type: "number", placeholder: "ej. 0" },
+    { name: "y0", label: "Condición inicial y(x₀)", type: "number", placeholder: "ej. 1" },
+    { name: "h", label: "Tamaño de paso (h)", type: "number", placeholder: "ej. 0.1" },
+    { name: "x_end", label: "Valor final x_end", type: "number", placeholder: "ej. 2" },
+  ],
 };

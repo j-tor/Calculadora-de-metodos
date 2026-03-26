@@ -49,6 +49,7 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
   const isRootMethod = ["bisection", "newton", "fixed-point"].includes(selectedMethod);
   const isLuMethod = selectedMethod === "lu";
   const isJacobiOrGaussSeidel = ["jacobi", "gauss-seidel"].includes(selectedMethod);
+  const isOdeMethod = ["euler", "verlet", "rk4"].includes(selectedMethod);
 
   if (!hasResults || !apiResult) {
     return null;
@@ -163,7 +164,9 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
                 ? "Descomposición LU"
                 : isJacobiOrGaussSeidel
                   ? "Convergencia (Error vs Iteración)"
-                  : "Visualización Gráfica"}
+                  : isOdeMethod
+                    ? "Trayectoria de la Solución ODE"
+                    : "Visualización Gráfica"}
           </h3>
           <p className={`text-xs md:text-sm ${textSecondary} mt-1 text-left`}>
             {isInterpolationMethod
@@ -172,7 +175,9 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
                 ? "Matriz L, Matriz U y solución"
                 : isJacobiOrGaussSeidel
                   ? "Error por iteración (escala log)"
-                  : "Gráfica de la función y proceso de convergencia"}
+                  : isOdeMethod
+                    ? selectedMethod === "verlet" ? "Posición y(x) y velocidad v(x) vs tiempo" : "y(x) vs x"
+                    : "Gráfica de la función y proceso de convergencia"}
           </p>
         </div>
         {showGraph ? (
@@ -497,6 +502,56 @@ export function GraphPanel({ selectedMethod, hasResults, apiResult }: GraphPanel
                   )}
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          ) : isOdeMethod ? (
+            <div className={`${bgSecondary} rounded-lg p-4 border ${borderChart}`}>
+              <ResponsiveContainer width="100%" height={380}>
+                <LineChart
+                  data={iterationPoints}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="odeGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor={isDark ? "#22D3EE" : "#0891B2"} />
+                    </linearGradient>
+                    <linearGradient id="odeVelGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#F97316" />
+                      <stop offset="100%" stopColor="#FBBF24" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
+                  <XAxis dataKey="x" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} axisLine={{ stroke: gridColor }} label={{ value: 'x', position: 'insideBottomRight', offset: -5, fill: axisColor }} />
+                  <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} axisLine={{ stroke: gridColor }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '8px', color: tooltipText, fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}
+                    labelStyle={{ color: tooltipText }}
+                    formatter={(value: any, name: any) => [
+                      typeof value === 'number' ? value.toFixed(6) : value,
+                      name === 'y' ? 'y(x)' : 'v(x)',
+                    ]}
+                  />
+                  <Line type="monotone" dataKey="y" stroke="url(#odeGradient)" strokeWidth={3} dot={false} isAnimationActive={false} name="y" />
+                  {selectedMethod === "verlet" && apiResult.v_values && (() => {
+                    const verletData = apiResult.x_values!.map((xv, i) => ({ x: xv, y: (apiResult.v_values as number[])[i] }));
+                    return (
+                      <Line type="monotone" data={verletData} dataKey="y" stroke="url(#odeVelGradient)" strokeWidth={2} dot={false} strokeDasharray="5 5" isAnimationActive={false} name="v" />
+                    );
+                  })()}
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="mt-3 flex flex-wrap gap-4 justify-center text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-1 bg-gradient-to-r from-[#3B82F6] to-[#22D3EE] rounded" />
+                  <span className={textSecondary}>y(x) — posición</span>
+                </div>
+                {selectedMethod === "verlet" && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-0.5 bg-gradient-to-r from-[#F97316] to-[#FBBF24] rounded" style={{ borderTop: '2px dashed #F97316' }} />
+                    <span className={textSecondary}>v(x) — velocidad</span>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
           <div className={`grid gap-4 ${

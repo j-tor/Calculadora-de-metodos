@@ -5,6 +5,7 @@ import {
   Grid3x3,
   ChevronDown,
   ChevronRight,
+  Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
@@ -45,6 +46,16 @@ const methodCategories = [
       { id: "lagrange", name: "Interpolacion de Lagrange" },
       { id: "newton-divided", name: "Interpolacion de Newton" },
       { id: "cubic-spline", name: "Trazador Cúbico" },
+    ],
+  },
+  {
+    id: "edo",
+    name: "Ecuaciones Diferenciales",
+    icon: Activity,
+    methods: [
+      { id: "euler", name: "Método de Euler" },
+      { id: "verlet", name: "Método de Verlet" },
+      { id: "rk4", name: "Runge-Kutta Orden 4" },
     ],
   },
 ];
